@@ -1,0 +1,40 @@
+.venv/
+__pycache__/
+*.py[cod]
+
+# Runtime-generated media and scan output
+live_audio_chunks/
+recorded_audio/
+uploaded_audio/
+uploaded_image/
+uploaded_images/
+uploaded_video/
+uploaded_videos/
+uploads/
+results/
+audio/
+dataset/
+
+# Local test media
+*.mp3
+*.wav
+*.m4a
+*.ogg
+*.flac
+*.webm
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.png
+*.jpg
+*.jpeg
+
+# Large local model artifacts
+*.pth
+*.pt
+
+# Local editor and temporary files
+tempCodeRunnerFile.py
+.env
+.env.*

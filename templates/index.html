@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>AI Deepfake Detection</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f5f7fb;
+            color: #1f2937;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 800px;
+            margin: 70px auto;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 36px;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #6b7280;
+            margin-bottom: 40px;
+        }
+
+        .card {
+            background: white;
+            padding: 40px;
+            border-radius: 18px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        }
+
+        .upload-box {
+            border: 2px dashed #9ca3af;
+            border-radius: 15px;
+            padding: 35px;
+            margin-bottom: 25px;
+        }
+
+        input[type="file"] {
+            margin: 15px;
+        }
+
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 14px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #f1f2f3;
+        }
+
+        button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        #status {
+            margin-top: 25px;
+            font-weight: bold;
+        }
+
+        #result {
+            display: none;
+            margin-top: 30px;
+            padding: 25px;
+            border-radius: 15px;
+            background: #f8fafc;
+        }
+
+        .result-title {
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px;
+            border-bottom: 1px solid #6891e3;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>AI Video & Audio Deepfake Detection</h1>
+
+    <p class="subtitle">
+        Upload a video to analyze its visual and audio content.
+    </p>
+
+    <div class="card">
+
+        <div class="upload-box">
+
+            <h2>Upload Video</h2>
+
+            <p>Select a video file for analysis</p>
+
+            <input
+                type="file"
+                id="videoFile"
+                accept="video/*"
+            >
+
+        </div>
+
+        <button id="analyzeBtn" onclick="analyzeVideo()">
+            Analyze Video
+        </button>
+
+        <div id="status"></div>
+
+        <div id="result">
+
+            <div class="result-title">
+                Analysis Result
+            </div>
+
+            <div class="result-row">
+                <span>Video</span>
+                <strong id="videoResult">Waiting...</strong>
+            </div>
+
+            <div class="result-row">
+                <span>Audio</span>
+                <strong id="audioResult">Waiting...</strong>
+            </div>
+
+            <div class="result-row">
+                <span>Final Result</span>
+                <strong id="finalResult">Waiting...</strong>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+async function analyzeVideo() {
+
+    const fileInput = document.getElementById("videoFile");
+    const button = document.getElementById("analyzeBtn");
+    const status = document.getElementById("status");
+    const result = document.getElementById("result");
+
+    if (!fileInput.files.length) {
+
+        status.innerText = "Please select a video first.";
+
+        return;
+    }
+
+    const file = fileInput.files[0];
+
+    const formData = new FormData();
+
+    formData.append("video", file);
+
+    button.disabled = true;
+
+    button.innerText = "Uploading...";
+
+    status.innerText = "Uploading video...";
+
+    result.style.display = "none";
+
+    try {
+
+        const response = await fetch("/upload", {
+
+            method: "POST",
+
+            body: formData
+
+        });
+
+        const data = await response.json();
+
+        if (!data.success) {
+
+            status.innerText = data.message;
+
+            button.disabled = false;
+
+            button.innerText = "Analyze Video";
+
+            return;
+        }
+
+        status.innerText =
+            "Video uploaded successfully.";
+
+        document.getElementById("videoResult").innerText =
+            "Uploaded";
+
+        result.style.display = "block";
+
+    }
+
+    catch (error) {
+
+        console.error(error);
+
+        status.innerText =
+            "Error communicating with server.";
+
+    }
+
+    button.disabled = false;
+
+    button.innerText = "Analyze Video";
+}
+
+</script>
+
+</body>
+</html>

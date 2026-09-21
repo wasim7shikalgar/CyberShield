@@ -1,0 +1,2872 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>CyberShield AI | Deepfake Detection</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+
+    <link
+        rel="preconnect"
+        href="https://fonts.gstatic.com"
+        crossorigin
+    >
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+        rel="stylesheet"
+    >
+
+</head>
+
+
+<body>
+
+<div class="app-shell">
+
+
+    <!-- =========================================================
+         SIDEBAR
+    ========================================================== -->
+
+    <aside class="sidebar">
+
+        <div class="brand">
+
+            <div class="brand-icon">
+                <span>🛡</span>
+            </div>
+
+            <div class="brand-text">
+
+                <h2>
+                    CyberShield
+                </h2>
+
+                <span>
+                    AI SECURITY PLATFORM
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <div class="sidebar-section-title">
+            COMMAND CENTER
+        </div>
+
+
+        <nav class="sidebar-nav">
+
+            <a
+                href="#overview"
+                class="nav-item active"
+            >
+                <span class="nav-icon">⌂</span>
+                <span>Overview</span>
+            </a>
+
+
+            <a
+                href="#scanner"
+                class="nav-item"
+            >
+                <span class="nav-icon">◈</span>
+                <span>Media Scanner</span>
+            </a>
+
+
+            <a
+                href="#liveDetection"
+                class="nav-item"
+            >
+                <span class="nav-icon">◉</span>
+                <span>Live Detection</span>
+                <span class="nav-live-dot"></span>
+            </a>
+
+
+            <a
+                href="#analytics"
+                class="nav-item"
+            >
+                <span class="nav-icon">▥</span>
+                <span>Analytics</span>
+            </a>
+
+
+            <a
+                href="#history"
+                class="nav-item"
+            >
+                <span class="nav-icon">☷</span>
+                <span>Scan History</span>
+            </a>
+
+
+            <a
+                href="#system"
+                class="nav-item"
+            >
+                <span class="nav-icon">⚙</span>
+                <span>System Status</span>
+            </a>
+
+        </nav>
+
+
+        <div class="sidebar-section-title">
+            SECURITY MODE
+        </div>
+
+
+        <div class="security-mode-card">
+
+            <div class="security-mode-top">
+
+                <div class="security-shield">
+                    🛡
+                </div>
+
+                <div>
+
+                    <strong>
+                        AI Protection
+                    </strong>
+
+                    <span>
+                        Active
+                    </span>
+
+                </div>
+
+                <div class="status-pulse"></div>
+
+            </div>
+
+
+            <div class="security-line">
+
+                <span>
+                    Threat Engine
+                </span>
+
+                <strong>
+                    ONLINE
+                </strong>
+
+            </div>
+
+
+            <div class="security-line">
+
+                <span>
+                    AI Models
+                </span>
+
+                <strong>
+                    READY
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        <div class="sidebar-footer">
+
+            <div class="system-user">
+
+                <div class="user-avatar">
+                    CS
+                </div>
+
+                <div>
+
+                    <strong>
+                        CyberShield AI
+                    </strong>
+
+                    <span>
+                        Detection Node 01
+                    </span>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </aside>
+
+
+
+    <!-- =========================================================
+         MAIN CONTENT
+    ========================================================== -->
+
+    <main class="main-content">
+
+
+        <!-- =====================================================
+             TOP HEADER
+        ====================================================== -->
+
+        <header class="top-header">
+
+            <div class="header-left">
+
+                <div class="page-title">
+
+                    <span class="eyebrow">
+                        AI CYBERSECURITY COMMAND CENTER
+                    </span>
+
+                    <h1>
+                        Deepfake Threat Detection
+                    </h1>
+
+                    <p>
+                        Multimodal AI analysis for audio, video and image authenticity.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="header-right">
+
+                <div class="connection-status">
+
+                    <span class="connection-dot"></span>
+
+                    <div>
+
+                        <strong>
+                            System Online
+                        </strong>
+
+                        <small id="lastUpdate">
+                            Waiting for telemetry...
+                        </small>
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    class="header-clock"
+                    id="headerClock"
+                >
+                    --:--
+                </div>
+
+            </div>
+
+        </header>
+
+
+
+        <!-- =====================================================
+             OVERVIEW
+        ====================================================== -->
+
+        <section
+            id="overview"
+            class="dashboard-section"
+        >
+
+            <div class="section-heading">
+
+                <div>
+
+                    <span class="section-kicker">
+                        OVERVIEW
+                    </span>
+
+                    <h2>
+                        Security Overview
+                    </h2>
+
+                </div>
+
+
+                <div class="live-badge">
+
+                    <span></span>
+
+                    LIVE MONITORING
+
+                </div>
+
+            </div>
+
+
+            <div class="stat-grid">
+
+
+                <div class="stat-card">
+
+                    <div class="stat-card-top">
+
+                        <span class="stat-label">
+                            TOTAL SCANS
+                        </span>
+
+                        <span class="stat-icon blue">
+                            ⌁
+                        </span>
+
+                    </div>
+
+                    <div
+                        class="stat-value"
+                        id="totalScans"
+                    >
+                        0
+                    </div>
+
+                    <div class="stat-footer">
+
+                        <span class="stat-indicator"></span>
+
+                        Session activity
+
+                    </div>
+
+                </div>
+
+
+
+                <div class="stat-card">
+
+                    <div class="stat-card-top">
+
+                        <span class="stat-label">
+                            AUTHENTIC MEDIA
+                        </span>
+
+                        <span class="stat-icon green">
+                            ✓
+                        </span>
+
+                    </div>
+
+                    <div
+                        class="stat-value"
+                        id="realMedia"
+                    >
+                        0
+                    </div>
+
+                    <div class="stat-footer">
+                        Verified as real
+                    </div>
+
+                </div>
+
+
+
+                <div class="stat-card">
+
+                    <div class="stat-card-top">
+
+                        <span class="stat-label">
+                            SUSPICIOUS
+                        </span>
+
+                        <span class="stat-icon yellow">
+                            !
+                        </span>
+
+                    </div>
+
+                    <div
+                        class="stat-value"
+                        id="suspiciousMedia"
+                    >
+                        0
+                    </div>
+
+                    <div class="stat-footer">
+                        Requires attention
+                    </div>
+
+                </div>
+
+
+
+                <div class="stat-card threat-card">
+
+                    <div class="stat-card-top">
+
+                        <span class="stat-label">
+                            THREATS DETECTED
+                        </span>
+
+                        <span class="stat-icon red">
+                            ⚠
+                        </span>
+
+                    </div>
+
+                    <div
+                        class="stat-value"
+                        id="fakeMedia"
+                    >
+                        0
+                    </div>
+
+                    <div class="stat-footer">
+                        AI flagged media
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- =====================================================
+             MEDIA SCANNER
+        ====================================================== -->
+
+        <section
+            id="scanner"
+            class="dashboard-section"
+        >
+
+            <div class="section-heading">
+
+                <div>
+
+                    <span class="section-kicker">
+                        MULTIMODAL SCANNER
+                    </span>
+
+                    <h2>
+                        Analyze Media
+                    </h2>
+
+                </div>
+
+                <span class="model-chip">
+                    AI ENGINE READY
+                </span>
+
+            </div>
+
+
+            <div class="scanner-layout">
+
+
+                <!-- =================================================
+                     MEDIA INPUT
+                ================================================== -->
+
+                <div class="panel scanner-panel">
+
+                    <div class="panel-header">
+
+                        <div>
+
+                            <h3>
+                                Media Input
+                            </h3>
+
+                            <p>
+                                Select or drop media for analysis
+                            </p>
+
+                        </div>
+
+                        <div class="panel-header-icon">
+                            ◈
+                        </div>
+
+                    </div>
+
+
+                    <div class="media-type-grid">
+
+
+                        <!-- AUDIO -->
+
+                        <div class="media-input-card audio-input-card">
+
+                            <div class="media-input-icon">
+                                🎙
+                            </div>
+
+                            <div class="media-input-info">
+
+                                <strong>
+                                    Audio
+                                </strong>
+
+                                <span>
+                                    Voice / Call Recording
+                                </span>
+
+                            </div>
+
+                            <button
+                                type="button"
+                                class="media-upload-btn"
+                                id="audioUploadButton"
+                            >
+                                Upload
+                            </button>
+
+                            <input
+                                type="file"
+                                id="audioFile"
+                                accept=".wav,.mp3,.m4a,.ogg,.flac,.webm,audio/*"
+                                hidden
+                            >
+
+                        </div>
+
+
+
+                        <!-- VIDEO -->
+
+                        <div class="media-input-card video-input-card">
+
+                            <div class="media-input-icon">
+                                🎬
+                            </div>
+
+                            <div class="media-input-info">
+
+                                <strong>
+                                    Video
+                                </strong>
+
+                                <span>
+                                    Face / Deepfake Analysis
+                                </span>
+
+                            </div>
+
+                            <button
+                                type="button"
+                                class="media-upload-btn"
+                                id="videoUploadButton"
+                            >
+                                Upload
+                            </button>
+
+                            <input
+                                type="file"
+                                id="videoFile"
+                                accept=".mp4,.avi,.mov,.mkv,.webm,video/*"
+                                hidden
+                            >
+
+                        </div>
+
+
+
+                        <!-- IMAGE -->
+
+                        <div class="media-input-card image-input-card">
+
+                            <div class="media-input-icon">
+                                🖼
+                            </div>
+
+                            <div class="media-input-info">
+
+                                <strong>
+                                    Image
+                                </strong>
+
+                                <span>
+                                    Face / Synthetic Media
+                                </span>
+
+                            </div>
+
+                            <button
+                                type="button"
+                                class="media-upload-btn"
+                                id="imageUploadButton"
+                            >
+                                Upload
+                            </button>
+
+                            <input
+                                type="file"
+                                id="imageFile"
+                                accept=".jpg,.jpeg,.png,.webp,.bmp,image/*"
+                                hidden
+                            >
+
+                        </div>
+
+                    </div>
+
+
+
+                    <!-- DROP ZONE -->
+
+                    <div
+                        class="drop-zone"
+                        id="scanDropArea"
+                    >
+
+                        <div class="drop-zone-animation"></div>
+
+                        <div class="drop-icon">
+                            ⇧
+                        </div>
+
+                        <h3>
+                            Drop your media here
+                        </h3>
+
+                        <p>
+                            or choose Audio, Video or Image above
+                        </p>
+
+                        <span class="drop-security">
+                            🔒 Files are processed by CyberShield AI
+                        </span>
+
+                    </div>
+
+
+
+                    <!-- SELECTED FILE -->
+
+                    <div
+                        class="selected-file-card hidden"
+                        id="selectedFileCard"
+                    >
+
+                        <div class="selected-file-icon">
+                            ◫
+                        </div>
+
+                        <div class="selected-file-details">
+
+                            <strong id="selectedFileName">
+                                No file selected
+                            </strong>
+
+                            <span id="selectedFileMeta">
+                                --
+                            </span>
+
+                        </div>
+
+                        <button
+                            type="button"
+                            class="remove-file-btn"
+                            id="removeSelectedFile"
+                        >
+                            ×
+                        </button>
+
+                    </div>
+
+
+                    <div
+                        class="selected-file-text"
+                        id="audioSelectedFile"
+                    ></div>
+
+                    <div
+                        class="selected-file-text"
+                        id="videoSelectedFile"
+                    ></div>
+
+                    <div
+                        class="selected-file-text"
+                        id="imageSelectedFile"
+                    ></div>
+
+
+                </div>
+
+
+
+                <!-- =================================================
+                     SCAN CONFIG
+                ================================================== -->
+
+                <div class="panel scan-config-panel">
+
+                    <div class="panel-header">
+
+                        <div>
+
+                            <h3>
+                                Detection Configuration
+                            </h3>
+
+                            <p>
+                                Configure analysis behaviour
+                            </p>
+
+                        </div>
+
+                        <div class="settings-icon">
+                            ⚙
+                        </div>
+
+                    </div>
+
+
+                    <div class="config-group">
+
+                        <label>
+
+                            <span>
+                                Scan Mode
+                            </span>
+
+                            <small>
+                                Analysis depth
+                            </small>
+
+                        </label>
+
+
+                        <div class="mode-selector">
+
+                            <button
+                                class="mode-option active"
+                                data-mode="quick"
+                                type="button"
+                            >
+
+                                <strong>
+                                    Quick
+                                </strong>
+
+                                <span>
+                                    Fast scan
+                                </span>
+
+                            </button>
+
+
+                            <button
+                                class="mode-option"
+                                data-mode="standard"
+                                type="button"
+                            >
+
+                                <strong>
+                                    Standard
+                                </strong>
+
+                                <span>
+                                    Balanced
+                                </span>
+
+                            </button>
+
+
+                            <button
+                                class="mode-option"
+                                data-mode="deep"
+                                type="button"
+                            >
+
+                                <strong>
+                                    Deep
+                                </strong>
+
+                                <span>
+                                    Maximum
+                                </span>
+
+                            </button>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <div class="config-group">
+
+                        <div class="config-label-row">
+
+                            <label>
+                                Detection Sensitivity
+                            </label>
+
+                            <span
+                                class="config-value"
+                                id="sensitivityValue"
+                            >
+                                Balanced
+                            </span>
+
+                        </div>
+
+
+                        <input
+                            type="range"
+                            id="sensitivitySlider"
+                            min="1"
+                            max="3"
+                            value="2"
+                            class="cyber-slider"
+                        >
+
+
+                        <div class="slider-labels">
+
+                            <span>
+                                Balanced
+                            </span>
+
+                            <span>
+                                High
+                            </span>
+
+                            <span>
+                                Strict
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <div class="advanced-toggle">
+
+                        <div>
+
+                            <strong>
+                                Automatic Analysis
+                            </strong>
+
+                            <span>
+                                Start analysis when supported media is selected
+                            </span>
+
+                        </div>
+
+
+                        <label class="switch">
+
+                            <input
+                                type="checkbox"
+                                id="autoScanToggle"
+                            >
+
+                            <span class="switch-slider"></span>
+
+                        </label>
+
+                    </div>
+
+
+
+                    <button
+                        type="button"
+                        class="primary-scan-button"
+                        id="startScanButton"
+                    >
+
+                        <span class="scan-button-icon">
+                            ◉
+                        </span>
+
+                        <span>
+                            Start AI Analysis
+                        </span>
+
+                        <span class="scan-button-arrow">
+                            →
+                        </span>
+
+                    </button>
+
+
+
+                    <div class="engine-info">
+
+                        <span class="engine-dot"></span>
+
+                        <span>
+                            AI inference engine
+                        </span>
+
+                        <strong>
+                            READY
+                        </strong>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- =====================================================
+             LIVE DETECTION
+        ====================================================== -->
+
+        <section
+            id="liveDetection"
+            class="dashboard-section"
+        >
+
+            <div class="section-heading">
+
+                <div>
+
+                    <span class="section-kicker">
+                        REAL-TIME AUDIO INTELLIGENCE
+                    </span>
+
+                    <h2>
+                        Live Threat Monitor
+                    </h2>
+
+                </div>
+
+
+                <div
+                    class="recording-indicator"
+                    id="recordingIndicator"
+                >
+
+                    <span></span>
+
+                    STANDBY
+
+                </div>
+
+            </div>
+
+
+
+            <!-- =================================================
+                 EXISTING 3-SECOND LIVE MONITOR
+            ================================================== -->
+
+            <div class="live-layout">
+
+
+                <div class="panel live-monitor-panel">
+
+                    <div class="live-monitor-header">
+
+                        <div>
+
+                            <span class="live-mini-label">
+                                MICROPHONE STREAM
+                            </span>
+
+                            <h3>
+                                Live Audio Analysis
+                            </h3>
+
+                        </div>
+
+
+                        <div
+                            class="mic-status-icon"
+                            id="micStatusIcon"
+                        >
+                            🎙
+                        </div>
+
+                    </div>
+
+
+
+                    <div
+                        class="waveform-container"
+                        id="waveformContainer"
+                    >
+
+                        <div class="wave-grid"></div>
+
+                        <div class="wave-center-line"></div>
+
+
+                        <div
+                            class="wave-bars"
+                            id="waveBars"
+                        >
+
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+
+                        </div>
+
+
+                        <div class="wave-status-text">
+
+                            <span id="recordingStatus">
+                                Microphone standby
+                            </span>
+
+                            <strong id="recordingTimer">
+                                00:00
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <div class="live-controls">
+
+                        <button
+                            type="button"
+                            id="startButton"
+                            class="live-start-btn"
+                        >
+
+                            <span>
+                                ●
+                            </span>
+
+                            Start Live Detection
+
+                        </button>
+
+
+                        <button
+                            type="button"
+                            id="stopButton"
+                            class="live-stop-btn"
+                            disabled
+                        >
+
+                            ■
+
+                            Stop
+
+                        </button>
+
+                    </div>
+
+
+
+                    <div class="stream-meta-grid">
+
+
+                        <div class="stream-meta">
+
+                            <span>
+                                STATUS
+                            </span>
+
+                            <strong id="voiceStatus">
+                                READY
+                            </strong>
+
+                        </div>
+
+
+                        <div class="stream-meta">
+
+                            <span>
+                                LATEST CHUNK
+                            </span>
+
+                            <strong id="audioChunk">
+                                --
+                            </strong>
+
+                        </div>
+
+
+                        <div class="stream-meta">
+
+                            <span>
+                                SAMPLE RATE
+                            </span>
+
+                            <strong>
+                                16 kHz
+                            </strong>
+
+                        </div>
+
+
+                        <div class="stream-meta">
+
+                            <span>
+                                MODEL
+                            </span>
+
+                            <strong>
+                                Wav2Vec2
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+
+                <!-- LIVE RESULT -->
+
+                <div class="panel live-result-panel">
+
+                    <div class="panel-header">
+
+                        <div>
+
+                            <h3>
+                                AI Verdict
+                            </h3>
+
+                            <p>
+                                Latest voice analysis
+                            </p>
+
+                        </div>
+
+                        <span class="ai-live-chip">
+                            AI LIVE
+                        </span>
+
+                    </div>
+
+
+                    <div class="verdict-display">
+
+                        <div
+                            class="verdict-ring"
+                            id="verdictRing"
+                        >
+
+                            <div class="verdict-inner">
+
+                                <span id="confidenceValue">
+                                    0%
+                                </span>
+
+                                <small>
+                                    CONFIDENCE
+                                </small>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="verdict-content">
+
+                            <span class="verdict-label">
+                                CURRENT CLASSIFICATION
+                            </span>
+
+                            <h2 id="liveDetectionResult">
+                                WAITING
+                            </h2>
+
+                            <p id="liveDetectionMessage">
+                                Start live detection to begin AI analysis.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <div class="probability-section">
+
+
+                        <div class="probability-row">
+
+                            <div class="probability-title">
+
+                                <span class="real-dot"></span>
+
+                                Real Probability
+
+                                <strong id="realProbability">
+                                    0%
+                                </strong>
+
+                            </div>
+
+
+                            <div class="probability-track">
+
+                                <div
+                                    class="probability-fill real-fill"
+                                    id="realBar"
+                                    style="width: 0%;"
+                                ></div>
+
+                            </div>
+
+                        </div>
+
+
+
+                        <div class="probability-row">
+
+                            <div class="probability-title">
+
+                                <span class="fake-dot"></span>
+
+                                Fake Probability
+
+                                <strong id="fakeProbability">
+                                    0%
+                                </strong>
+
+                            </div>
+
+
+                            <div class="probability-track">
+
+                                <div
+                                    class="probability-fill fake-fill"
+                                    id="fakeBar"
+                                    style="width: 0%;"
+                                ></div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- =================================================
+                 NEW 1-MINUTE RECORD & SCAN
+            ================================================== -->
+
+            <div class="panel record-scan-panel">
+
+                <div class="panel-header">
+
+                    <div>
+
+                        <span class="section-kicker">
+                            FORENSIC AUDIO SCAN
+                        </span>
+
+                        <h3>
+                            Record &amp; Scan
+                        </h3>
+
+                        <p>
+                            Record a 1-minute voice sample and analyze it as one complete audio file.
+                        </p>
+
+                    </div>
+
+
+                    <span class="model-chip">
+                        WAV2VEC2
+                    </span>
+
+                </div>
+
+
+
+                <div class="record-scan-grid">
+
+
+                    <!-- RECORDING CONTROL -->
+
+                    <div class="record-control-area">
+
+
+                        <div class="record-status-box">
+
+                            <div class="record-status-icon">
+                                🎙
+                            </div>
+
+
+                            <div>
+
+                                <span>
+                                    RECORDING STATUS
+                                </span>
+
+                                <strong id="recordScanStatus">
+                                    READY
+                                </strong>
+
+                                <small id="recordScanMessage">
+                                    Click Start Recording to capture a 1-minute sample.
+                                </small>
+
+                            </div>
+
+                        </div>
+
+
+
+                        <div
+                            class="record-waveform"
+                            id="recordWaveform"
+                        >
+
+                            <div class="record-wave-grid"></div>
+
+                            <div
+                                class="record-wave-bars"
+                                id="recordWaveBars"
+                            >
+
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+
+                            </div>
+
+
+                            <div class="record-wave-footer">
+
+                                <span>
+                                    AUDIO CAPTURE
+                                </span>
+
+                                <strong id="recordTimer">
+                                    00:00 / 01:00
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+
+
+                        <div class="record-actions">
+
+
+                            <button
+                                type="button"
+                                class="record-start-button"
+                                id="recordStartButton"
+                            >
+
+                                <span>
+                                    ●
+                                </span>
+
+                                Start Recording
+
+                            </button>
+
+
+                            <button
+                                type="button"
+                                class="record-stop-button"
+                                id="recordStopButton"
+                                disabled
+                            >
+
+                                ■
+
+                                Stop
+
+                            </button>
+
+                        </div>
+
+
+                        <div
+                            class="record-progress"
+                            id="recordProgress"
+                        >
+
+                            <div
+                                class="record-progress-bar"
+                                id="recordProgressBar"
+                                style="width: 0%;"
+                            ></div>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <!-- RECORDED FILE -->
+
+                    <div class="recorded-file-area">
+
+
+                        <div class="recorded-file-header">
+
+                            <span>
+                                RECORDED AUDIO
+                            </span>
+
+                            <span
+                                class="record-ready-badge"
+                                id="recordReadyBadge"
+                            >
+                                NOT READY
+                            </span>
+
+                        </div>
+
+
+
+                        <div
+                            class="recorded-file-card"
+                            id="recordedFileCard"
+                        >
+
+                            <div class="recorded-file-icon">
+                                🎧
+                            </div>
+
+
+                            <div class="recorded-file-details">
+
+                                <strong id="recordedFileName">
+                                    No recording yet
+                                </strong>
+
+                                <span id="recordedFileMeta">
+                                    Record 1 minute to create an audio sample.
+                                </span>
+
+                            </div>
+
+                        </div>
+
+
+
+                        <div
+                            class="record-audio-preview"
+                            id="recordAudioPreview"
+                        >
+
+                            <audio
+                                id="recordedAudioPlayer"
+                                controls
+                                preload="metadata"
+                            ></audio>
+
+                        </div>
+
+
+
+                        <button
+                            type="button"
+                            class="record-scan-button"
+                            id="scanRecordedAudioButton"
+                            disabled
+                        >
+
+                            <span>
+                                ◉
+                            </span>
+
+                            Scan Recorded Audio
+
+                            <span>
+                                →
+                            </span>
+
+                        </button>
+
+
+
+                        <div
+                            class="record-scan-result"
+                            id="recordScanResult"
+                        >
+
+                            <div class="record-result-top">
+
+                                <span>
+                                    FORENSIC RESULT
+                                </span>
+
+                                <strong id="recordResultPrediction">
+                                    WAITING
+                                </strong>
+
+                            </div>
+
+
+                            <div class="record-result-grid">
+
+                                <div>
+
+                                    <span>
+                                        CONFIDENCE
+                                    </span>
+
+                                    <strong id="recordResultConfidence">
+                                        --
+                                    </strong>
+
+                                </div>
+
+
+                                <div>
+
+                                    <span>
+                                        REAL
+                                    </span>
+
+                                    <strong id="recordResultReal">
+                                        --
+                                    </strong>
+
+                                </div>
+
+
+                                <div>
+
+                                    <span>
+                                        FAKE
+                                    </span>
+
+                                    <strong id="recordResultFake">
+                                        --
+                                    </strong>
+
+                                </div>
+
+
+                                <div>
+
+                                    <span>
+                                        RISK
+                                    </span>
+
+                                    <strong id="recordResultRisk">
+                                        --
+                                    </strong>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- =================================================
+                 AUDIO SCAN STATUS
+            ================================================== -->
+
+            <div
+                class="audio-scan-control hidden"
+                id="audioScanControl"
+            >
+
+                <div>
+
+                    <span>
+                        SELECTED AUDIO
+                    </span>
+
+                    <strong id="selectedAudioName">
+                        --
+                    </strong>
+
+                    <small id="selectedAudioMeta">
+                        --
+                    </small>
+
+                </div>
+
+
+                <button
+                    type="button"
+                    id="scanAudioButton"
+                >
+                    Scan Audio
+                </button>
+
+            </div>
+
+
+            <div
+                class="audio-scan-status hidden"
+                id="audioScanStatus"
+            >
+
+                <span
+                    class="audio-scan-status-pulse"
+                    id="audioScanStatusPulse"
+                ></span>
+
+                <span id="audioScanSpinner">
+                    ◌
+                </span>
+
+                <div>
+
+                    <strong id="audioScanTitle">
+                        Audio Analysis
+                    </strong>
+
+                    <p id="audioScanMessage">
+                        Waiting...
+                    </p>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- =====================================================
+             CURRENT ANALYSIS + RISK
+        ====================================================== -->
+
+        <section class="dashboard-section">
+
+            <div class="analysis-grid">
+
+
+                <!-- CURRENT ANALYSIS -->
+
+                <div class="panel current-analysis-panel">
+
+                    <div class="panel-header">
+
+                        <div>
+
+                            <span class="section-kicker">
+                                LATEST EVENT
+                            </span>
+
+                            <h3>
+                                Current Analysis
+                            </h3>
+
+                        </div>
+
+
+                        <span
+                            class="processing-chip"
+                            id="processingStatus"
+                        >
+                            IDLE
+                        </span>
+
+                    </div>
+
+
+                    <div class="analysis-result">
+
+                        <div
+                            class="result-icon"
+                            id="resultIcon"
+                        >
+                            ◉
+                        </div>
+
+
+                        <div>
+
+                            <span class="analysis-label">
+                                DETECTION RESULT
+                            </span>
+
+                            <h2 id="detectionResult">
+                                WAITING
+                            </h2>
+
+                            <p id="detectionMessage">
+                                No active analysis.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="analysis-details">
+
+                        <div>
+
+                            <span>
+                                Media Type
+                            </span>
+
+                            <strong id="analysisMediaType">
+                                --
+                            </strong>
+
+                        </div>
+
+
+                        <div>
+
+                            <span>
+                                Confidence
+                            </span>
+
+                            <strong id="analysisConfidence">
+                                --
+                            </strong>
+
+                        </div>
+
+
+                        <div>
+
+                            <span>
+                                Risk Level
+                            </span>
+
+                            <strong id="analysisRisk">
+                                --
+                            </strong>
+
+                        </div>
+
+
+                        <div>
+
+                            <span>
+                                AI Model
+                            </span>
+
+                            <strong id="analysisModel">
+                                --
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+
+                <!-- RISK -->
+
+                <div class="panel risk-panel">
+
+                    <div class="panel-header">
+
+                        <div>
+
+                            <span class="section-kicker">
+                                THREAT ASSESSMENT
+                            </span>
+
+                            <h3>
+                                Fraud Risk Score
+                            </h3>
+
+                        </div>
+
+
+                        <span class="risk-engine-chip">
+                            RISK ENGINE
+                        </span>
+
+                    </div>
+
+
+                    <div class="risk-display">
+
+                        <div
+                            class="risk-circle"
+                            id="riskCircle"
+                        >
+
+                            <div class="risk-circle-inner">
+
+                                <strong id="riskValue">
+                                    0
+                                </strong>
+
+                                <span>
+                                    / 100
+                                </span>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="risk-info">
+
+                            <span>
+                                CURRENT RISK
+                            </span>
+
+                            <h2 id="riskLevel">
+                                LOW
+                            </h2>
+
+                            <p id="riskMessage">
+                                No immediate threat detected.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="risk-scale">
+
+                        <div class="risk-scale-bar">
+
+                            <span class="risk-low"></span>
+                            <span class="risk-medium"></span>
+                            <span class="risk-high"></span>
+
+                        </div>
+
+
+                        <div class="risk-scale-labels">
+
+                            <span>
+                                LOW
+                            </span>
+
+                            <span>
+                                MEDIUM
+                            </span>
+
+                            <span>
+                                HIGH
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- =====================================================
+             AI SIGNALS
+        ====================================================== -->
+
+        <section class="dashboard-section">
+
+            <div class="panel signals-panel">
+
+                <div class="panel-header">
+
+                    <div>
+
+                        <span class="section-kicker">
+                            MODEL TELEMETRY
+                        </span>
+
+                        <h3>
+                            AI Analysis Signals
+                        </h3>
+
+                    </div>
+
+
+                    <span class="telemetry-live">
+                        ● TELEMETRY LIVE
+                    </span>
+
+                </div>
+
+
+                <div class="signals-grid">
+
+
+                    <div class="signal-card">
+
+                        <div class="signal-icon">
+                            🧠
+                        </div>
+
+                        <div>
+
+                            <span>
+                                Inference Model
+                            </span>
+
+                            <strong id="signalModel">
+                                Wav2Vec2
+                            </strong>
+
+                        </div>
+
+                        <div class="signal-state">
+                            READY
+                        </div>
+
+                    </div>
+
+
+
+                    <div class="signal-card">
+
+                        <div class="signal-icon">
+                            ◉
+                        </div>
+
+                        <div>
+
+                            <span>
+                                Classification
+                            </span>
+
+                            <strong id="signalClassification">
+                                WAITING
+                            </strong>
+
+                        </div>
+
+                        <div class="signal-state">
+                            LIVE
+                        </div>
+
+                    </div>
+
+
+
+                    <div class="signal-card">
+
+                        <div class="signal-icon">
+                            %
+                        </div>
+
+                        <div>
+
+                            <span>
+                                Confidence
+                            </span>
+
+                            <strong id="signalConfidence">
+                                0%
+                            </strong>
+
+                        </div>
+
+                        <div class="signal-state">
+                            ACTIVE
+                        </div>
+
+                    </div>
+
+
+
+                    <div class="signal-card">
+
+                        <div class="signal-icon">
+                            ⚡
+                        </div>
+
+                        <div>
+
+                            <span>
+                                Inference Status
+                            </span>
+
+                            <strong id="signalInference">
+                                STANDBY
+                            </strong>
+
+                        </div>
+
+                        <div class="signal-state">
+                            ONLINE
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- =====================================================
+             ANALYTICS
+        ====================================================== -->
+
+        <section
+            id="analytics"
+            class="dashboard-section"
+        >
+
+            <div class="section-heading">
+
+                <div>
+
+                    <span class="section-kicker">
+                        SECURITY INTELLIGENCE
+                    </span>
+
+                    <h2>
+                        Analytics
+                    </h2>
+
+                </div>
+
+            </div>
+
+
+            <div class="analytics-grid">
+
+
+                <div class="panel distribution-panel">
+
+                    <div class="panel-header">
+
+                        <div>
+
+                            <h3>
+                                Detection Distribution
+                            </h3>
+
+                            <p>
+                                Current session
+                            </p>
+
+                        </div>
+
+                        <span>
+                            <strong id="analyticsTotal">
+                                0
+                            </strong>
+                            scans
+                        </span>
+
+                    </div>
+
+
+                    <div class="distribution-content">
+
+                        <div
+                            class="donut-chart"
+                            id="distributionChart"
+                        >
+
+                            <div class="donut-inner">
+
+                                <strong id="analyticsReal">
+                                    0
+                                </strong>
+
+                                <span>
+                                    REAL
+                                </span>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="distribution-legend">
+
+                            <div>
+
+                                <span class="legend-dot real-dot"></span>
+
+                                <div>
+
+                                    <strong>
+                                        Real
+                                    </strong>
+
+                                    <small id="distributionReal">
+                                        0%
+                                    </small>
+
+                                </div>
+
+                            </div>
+
+
+                            <div>
+
+                                <span class="legend-dot fake-dot"></span>
+
+                                <div>
+
+                                    <strong>
+                                        Fake
+                                    </strong>
+
+                                    <small id="distributionFake">
+                                        0%
+                                    </small>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+
+                <div class="panel media-analytics-panel">
+
+                    <div class="panel-header">
+
+                        <div>
+
+                            <h3>
+                                Media Activity
+                            </h3>
+
+                            <p>
+                                Detection pipeline usage
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="media-stat-list">
+
+
+                        <div class="media-stat-row">
+
+                            <div class="media-stat-name">
+
+                                <span class="media-mini-icon audio">
+                                    🎙
+                                </span>
+
+                                <span>
+                                    Audio
+                                </span>
+
+                            </div>
+
+                            <strong id="audioScanCount">
+                                0
+                            </strong>
+
+                        </div>
+
+
+
+                        <div class="media-stat-row">
+
+                            <div class="media-stat-name">
+
+                                <span class="media-mini-icon video">
+                                    🎬
+                                </span>
+
+                                <span>
+                                    Video
+                                </span>
+
+                            </div>
+
+                            <strong id="videoScanCount">
+                                0
+                            </strong>
+
+                        </div>
+
+
+
+                        <div class="media-stat-row">
+
+                            <div class="media-stat-name">
+
+                                <span class="media-mini-icon image">
+                                    🖼
+                                </span>
+
+                                <span>
+                                    Image
+                                </span>
+
+                            </div>
+
+                            <strong id="imageScanCount">
+                                0
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- =====================================================
+             HISTORY / AUDIT TRAIL
+        ====================================================== -->
+
+        <section
+            id="history"
+            class="dashboard-section"
+        >
+
+            <div class="panel history-panel">
+
+                <div class="panel-header history-header">
+
+                    <div>
+
+                        <span class="section-kicker">
+                            AUDIT TRAIL
+                        </span>
+
+                        <h3>
+                            Scan History
+                        </h3>
+
+                    </div>
+
+
+                    <div class="history-actions">
+
+                        <div class="history-search">
+
+                            <span>
+                                ⌕
+                            </span>
+
+                            <input
+                                type="text"
+                                id="historySearch"
+                                placeholder="Search scans..."
+                            >
+
+                        </div>
+
+
+                        <select
+                            id="historyFilter"
+                            class="history-filter"
+                        >
+
+                            <option value="all">
+                                All Results
+                            </option>
+
+                            <option value="real">
+                                Real
+                            </option>
+
+                            <option value="fake">
+                                Fake
+                            </option>
+
+                        </select>
+
+
+                        <button
+                            type="button"
+                            class="history-btn"
+                            id="refreshHistoryButton"
+                            title="Refresh scan history"
+                        >
+                            ↻ Refresh
+                        </button>
+
+
+                        <button
+                            type="button"
+                            class="history-btn"
+                            id="exportHistoryButton"
+                        >
+                            ↓ Export
+                        </button>
+
+
+                        <button
+                            type="button"
+                            class="history-btn danger"
+                            id="clearHistoryButton"
+                        >
+                            Clear
+                        </button>
+
+                    </div>
+
+                </div>
+
+
+
+                <div class="history-table-wrapper">
+
+                    <table class="history-table">
+
+                        <thead>
+
+                            <tr>
+
+                                <th>
+                                    TIME
+                                </th>
+
+                                <th>
+                                    MEDIA
+                                </th>
+
+                                <th>
+                                    RESULT
+                                </th>
+
+                                <th>
+                                    CONFIDENCE
+                                </th>
+
+                                <th>
+                                    RISK
+                                </th>
+
+                                <th>
+                                    MODEL
+                                </th>
+
+                            </tr>
+
+                        </thead>
+
+
+                        <tbody id="historyBody">
+
+                            <tr class="empty-history">
+
+                                <td colspan="6">
+
+                                    <div class="empty-history-content">
+
+                                        <span>
+                                            ◌
+                                        </span>
+
+                                        <strong>
+                                            No scan activity yet
+                                        </strong>
+
+                                        <small>
+                                            Start a live detection or upload supported media.
+                                        </small>
+
+                                    </div>
+
+                                </td>
+
+                            </tr>
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- =====================================================
+             SYSTEM STATUS
+        ====================================================== -->
+
+        <section
+            id="system"
+            class="dashboard-section"
+        >
+
+            <div class="section-heading">
+
+                <div>
+
+                    <span class="section-kicker">
+                        INFRASTRUCTURE
+                    </span>
+
+                    <h2>
+                        System Status
+                    </h2>
+
+                </div>
+
+                <span class="system-uptime">
+                    NODE 01
+                </span>
+
+            </div>
+
+
+            <div class="system-grid">
+
+
+                <div class="system-card">
+
+                    <div class="system-card-icon">
+                        🎙
+                    </div>
+
+                    <div class="system-card-content">
+
+                        <span>
+                            Audio Detection
+                        </span>
+
+                        <strong>
+                            Wav2Vec2
+                        </strong>
+
+                    </div>
+
+                    <div
+                        class="system-status online"
+                        id="audioSystemStatus"
+                    >
+                        ONLINE
+                    </div>
+
+                </div>
+
+
+
+                <div class="system-card">
+
+                    <div class="system-card-icon">
+                        🎬
+                    </div>
+
+                    <div class="system-card-content">
+
+                        <span>
+                            Video Detection
+                        </span>
+
+                        <strong>
+                            Xception
+                        </strong>
+
+                    </div>
+
+                    <div
+                        class="system-status pending"
+                        id="videoSystemStatus"
+                    >
+                        READY
+                    </div>
+
+                </div>
+
+
+
+                <div class="system-card">
+
+                    <div class="system-card-icon">
+                        🖼
+                    </div>
+
+                    <div class="system-card-content">
+
+                        <span>
+                            Image Detection
+                        </span>
+
+                        <strong>
+                            Xception
+                        </strong>
+
+                    </div>
+
+                    <div
+                        class="system-status pending"
+                        id="imageSystemStatus"
+                    >
+                        READY
+                    </div>
+
+                </div>
+
+
+
+                <div class="system-card">
+
+                    <div class="system-card-icon">
+                        ⚡
+                    </div>
+
+                    <div class="system-card-content">
+
+                        <span>
+                            Risk Engine
+                        </span>
+
+                        <strong>
+                            Threat Scoring
+                        </strong>
+
+                    </div>
+
+                    <div
+                        class="system-status online"
+                        id="riskStatus"
+                    >
+                        ONLINE
+                    </div>
+
+                </div>
+
+            </div>
+
+
+
+            <div class="system-telemetry">
+
+                <div>
+
+                    <span>
+                        API STATUS
+                    </span>
+
+                    <strong id="inferenceStatus">
+                        CONNECTING
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        INFERENCE ENGINE
+                    </span>
+
+                    <strong id="featureStatus">
+                        READY
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        RISK ENGINE
+                    </span>
+
+                    <strong id="riskStatusText">
+                        ONLINE
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        NODE
+                    </span>
+
+                    <strong>
+                        CYBER-01
+                    </strong>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- =====================================================
+             FOOTER
+        ====================================================== -->
+
+        <footer class="dashboard-footer">
+
+            <div class="footer-brand">
+
+                <span class="footer-shield">
+                    🛡
+                </span>
+
+                <div>
+
+                    <strong>
+                        CyberShield AI
+                    </strong>
+
+                    <small>
+                        Multimodal Deepfake Detection Platform
+                    </small>
+
+                </div>
+
+            </div>
+
+
+            <div class="footer-tech">
+
+                <span>
+                    AI
+                </span>
+
+                <span>
+                    ML
+                </span>
+
+                <span>
+                    WAV2VEC2
+                </span>
+
+                <span>
+                    XCEPTION
+                </span>
+
+            </div>
+
+
+            <div class="footer-version">
+                v2.0 • SIH 2026
+            </div>
+
+        </footer>
+
+    </main>
+
+</div>
+
+
+
+<!-- =============================================================
+     TOAST NOTIFICATIONS
+============================================================== -->
+
+<div
+    class="toast-container"
+    id="toastContainer"
+></div>
+
+
+
+<!-- =============================================================
+     SCAN OVERLAY
+============================================================== -->
+
+<div
+    class="scan-overlay hidden"
+    id="scanOverlay"
+>
+
+    <div class="scan-overlay-card">
+
+        <div class="scanner-animation">
+
+            <div class="scanner-ring ring-one"></div>
+
+            <div class="scanner-ring ring-two"></div>
+
+            <div class="scanner-ring ring-three"></div>
+
+            <div class="scanner-core">
+                🛡
+            </div>
+
+        </div>
+
+
+        <span class="scan-overlay-kicker">
+            CYBERSHIELD AI
+        </span>
+
+
+        <h2>
+            Analyzing Media
+        </h2>
+
+
+        <p id="scanOverlayMessage">
+            Initializing AI inference engine...
+        </p>
+
+
+        <div class="scan-progress">
+
+            <div
+                class="scan-progress-bar"
+                id="scanProgressBar"
+            ></div>
+
+        </div>
+
+
+        <span
+            class="scan-progress-text"
+            id="scanProgressText"
+        >
+            0%
+        </span>
+
+    </div>
+
+</div>
+
+
+
+<!-- =============================================================
+     JAVASCRIPT
+============================================================== -->
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+
+
+</body>
+
+</html>
