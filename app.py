@@ -1362,7 +1362,7 @@ def api_audio_start():
                 "success": False,
 
                 "message":
-                    "Microphone recording could not start."
+                    "Server microphone is unavailable. Use the browser Record & Scan control instead."
 
             }), 500
 

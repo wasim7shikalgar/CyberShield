@@ -1,6 +1,5 @@
 ---
 title: CyberShield
-emoji: shield
 colorFrom: blue
 colorTo: green
 sdk: docker
