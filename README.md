@@ -45,6 +45,17 @@ Open `http://127.0.0.1:5000` in a browser.
 
 For browser microphone access, allow microphone permission when prompted. The Flask process must remain running while using the dashboard.
 
+## Deploy Online
+
+The repository includes `render.yaml` for Render deployment:
+
+1. Create a Render account and choose **New Blueprint**.
+2. Connect `https://github.com/wasim7shikalgar/CyberShield`.
+3. Select the repository and deploy the blueprint.
+4. Open the generated `onrender.com` URL and share it.
+
+Model checkpoints are excluded from Git because of their size. Add the required checkpoints to the deployed service or use persistent object storage before enabling image and video detection.
+
 ## API Endpoints
 
 | Endpoint | Method | Purpose |
