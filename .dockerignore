@@ -28,3 +28,6 @@ results
 *.jpeg
 *.pth
 *.pt
+
+# Required image detector checkpoint
+!DeepfakeBench/training/weights/xception_best.pth
