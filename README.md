@@ -1,3 +1,12 @@
+---
+title: CyberShield
+emoji: shield
+colorFrom: blue
+colorTo: green
+sdk: docker
+app_port: 7860
+---
+
 # CyberShield
 
 CyberShield is a Flask-based multimodal deepfake detection dashboard for audio, image, and video files.
@@ -55,6 +64,12 @@ The repository includes `render.yaml` for Render deployment:
 4. Open the generated `onrender.com` URL and share it.
 
 Model checkpoints are excluded from Git because of their size. Add the required checkpoints to the deployed service or use persistent object storage before enabling image and video detection.
+
+### Hugging Face Spaces
+
+To create a public browser-accessible demo without running the backend on your PC, create a new Docker Space and upload this repository. The Space URL will be public and the Flask backend will run in the Space container on port `7860`.
+
+The free CPU tier may be slow or sleep when idle. Audio model files are downloaded during startup; image and video detection also require their model checkpoints to be added to the Space storage.
 
 ## API Endpoints
 
