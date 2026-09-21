@@ -523,33 +523,17 @@ function normalizeResult(rawResult) {
     }
 
     /*
-     * Confidence.
+     * Confidence must match the displayed class probability.
+     * Some backend responses contain a separate confidence value
+     * on a different scale, which makes the verdict inconsistent.
      */
-    let confidence =
-        toPercentage(
-            getFirstDefined(
-                rawResult,
-                [
-                    "confidence",
-                    "score",
-                    "probability"
-                ],
-                null
-            )
-        );
-
     const expectedConfidence =
         prediction === "FAKE"
             ? fake
             : real;
 
-    if (
-        confidence <= 0 ||
-        confidence > 100
-    ) {
-        confidence =
-            expectedConfidence;
-    }
+    const confidence =
+        expectedConfidence;
 
     /*
      * Risk.
