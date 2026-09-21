@@ -2,6 +2,10 @@
 
 CyberShield is a Flask-based multimodal deepfake detection dashboard for audio, image, and video files.
 
+## How It Works
+
+Users upload media or record audio from the dashboard. Flask sends the file to the relevant AI detector, calculates REAL/FAKE confidence and manipulation risk, and displays the result in the dashboard history.
+
 ## Features
 
 - Audio deepfake detection with Wav2Vec2
