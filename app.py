@@ -1,5 +1,8 @@
 from flask import Flask, render_template, jsonify, request
+import base64
+import json
 import os
+import tempfile
 import time
 import threading
 import uuid
@@ -7,13 +10,25 @@ import subprocess
 import shutil
 import traceback
 
+import numpy as np
 import torch
 import librosa
+import soundfile as sf
 
 from transformers import (
     AutoFeatureExtractor,
     AutoModelForAudioClassification
 )
+
+try:
+    from flask_sock import Sock
+
+    SOCKET_IMPORT_ERROR = None
+
+except Exception as error:
+    Sock = None
+    SOCKET_IMPORT_ERROR = str(error)
+
 
 from live_audio import (
     start_recording,
@@ -77,6 +92,11 @@ except Exception as error:
 # ============================================================
 
 app = Flask(__name__)
+
+if Sock is not None:
+    socket = Sock(app)
+else:
+    socket = None
 
 app.config["MAX_CONTENT_LENGTH"] = 500 * 1024 * 1024
 
@@ -411,6 +431,34 @@ def calculate_risk(fake_probability):
     return risk, level
 
 
+def get_voice_action(risk_level):
+
+    if risk_level == "HIGH":
+
+        return {
+            "alert_status": "ALERT",
+            "recommendation": (
+                "Do not approve sensitive requests. "
+                "Verify the caller using a trusted callback or MFA."
+            )
+        }
+
+    if risk_level == "MEDIUM":
+
+        return {
+            "alert_status": "CAUTION",
+            "recommendation": (
+                "Use secondary verification before sharing information "
+                "or approving a transaction."
+            )
+        }
+
+    return {
+        "alert_status": "MONITORING",
+        "recommendation": "Continue monitoring the voice signal."
+    }
+
+
 # ============================================================
 # BUILD AUDIO RESULT
 # ============================================================
@@ -423,7 +471,8 @@ def build_result(
     source,
     filename="",
     chunk="",
-    model_name="Wav2Vec2"
+    model_name="Wav2Vec2",
+    voice_metrics=None
 ):
 
     real, fake = normalize_probabilities(
@@ -456,7 +505,11 @@ def build_result(
         fake
     )
 
-    return {
+    voice_action = get_voice_action(
+        risk_level
+    )
+
+    result = {
 
         "id": str(uuid.uuid4()),
 
@@ -513,12 +566,26 @@ def build_result(
 
         "risk_level": risk_level,
 
+        "alert_status": voice_action[
+            "alert_status"
+        ],
+
+        "recommendation": voice_action[
+            "recommendation"
+        ],
+
         "model": model_name,
 
         "source": source,
 
         "recording": is_recording()
     }
+
+    if voice_metrics:
+
+        result.update(voice_metrics)
+
+    return result
 
 
 # ============================================================
@@ -797,7 +864,83 @@ def build_media_result(
 # AUDIO DETECTION
 # ============================================================
 
+def extract_voice_metrics(audio):
+
+    if audio is None or len(audio) == 0:
+
+        return {}
+
+    try:
+
+        frame_rms = librosa.feature.rms(
+            y=audio,
+            frame_length=512,
+            hop_length=256
+        )[0]
+
+        mean_rms = float(frame_rms.mean())
+
+        activity_threshold = max(
+            0.01,
+            mean_rms * 0.35
+        )
+
+        speech_activity = float(
+            (frame_rms > activity_threshold).mean() * 100.0
+        )
+
+        zero_crossing_rate = float(
+            librosa.feature.zero_crossing_rate(
+                audio,
+                frame_length=512,
+                hop_length=256
+            ).mean()
+        )
+
+        spectral_centroid = float(
+            librosa.feature.spectral_centroid(
+                y=audio,
+                sr=SAMPLE_RATE,
+                n_fft=512,
+                hop_length=256
+            ).mean()
+        )
+
+        return {
+            "audio_duration_seconds": round(
+                len(audio) / SAMPLE_RATE,
+                3
+            ),
+            "speech_activity": round(
+                speech_activity,
+                2
+            ),
+            "rms_energy": round(
+                mean_rms,
+                6
+            ),
+            "zero_crossing_rate": round(
+                zero_crossing_rate,
+                6
+            ),
+            "spectral_centroid_hz": round(
+                spectral_centroid,
+                2
+            )
+        }
+
+    except Exception as error:
+
+        print(
+            "Voice metrics error:",
+            error
+        )
+
+        return {}
+
 def detect_audio(audio_path):
+
+    inference_started = time.perf_counter()
 
     try:
 
@@ -933,7 +1076,15 @@ def detect_audio(audio_path):
 
         "real": real_probability,
 
-        "fake": fake_probability
+        "fake": fake_probability,
+
+        "voice_metrics": {
+            **extract_voice_metrics(audio),
+            "analysis_latency_ms": round(
+                (time.perf_counter() - inference_started) * 1000.0,
+                2
+            )
+        }
     }
 
 
@@ -1071,7 +1222,12 @@ def analyze_audio_file(
 
         chunk=filename,
 
-        model_name="Wav2Vec2 Deepfake Detector"
+        model_name="Wav2Vec2 Deepfake Detector",
+
+        voice_metrics=result.get(
+            "voice_metrics",
+            {}
+        )
     )
 
     update_latest(
@@ -1157,7 +1313,12 @@ def analyze_live_file(filename):
 
             chunk=filename,
 
-            model_name="Wav2Vec2 Deepfake Detector"
+            model_name="Wav2Vec2 Deepfake Detector",
+
+            voice_metrics=result.get(
+                "voice_metrics",
+                {}
+            )
         )
 
         update_latest(
@@ -1482,6 +1643,159 @@ def api_audio_status():
         "recording": is_recording()
 
     })
+
+
+# ============================================================
+# LIVE STREAM AUDIO
+# ============================================================
+
+def decode_stream_message(message):
+
+    if isinstance(message, bytes):
+        return message
+
+    if not isinstance(message, str):
+        return None
+
+    try:
+        payload = json.loads(message)
+    except json.JSONDecodeError:
+        return None
+
+    if payload.get("event") == "stop":
+        return b""
+
+    media = payload.get("media", {})
+    encoded_audio = media.get("payload")
+
+    if not encoded_audio:
+        return None
+
+    try:
+        return base64.b64decode(encoded_audio)
+    except Exception:
+        return None
+
+
+def analyze_stream_window(audio, call_id):
+
+    temporary_path = None
+
+    try:
+
+        with tempfile.NamedTemporaryFile(
+            suffix=".wav",
+            delete=False
+        ) as temporary_file:
+
+            temporary_path = temporary_file.name
+
+        sf.write(
+            temporary_path,
+            audio,
+            SAMPLE_RATE,
+            subtype="PCM_16"
+        )
+
+        result = detect_audio(
+            temporary_path
+        )
+
+        if result is None:
+            return None
+
+        final_result = build_result(
+            prediction=result["prediction"],
+            confidence=result["confidence"],
+            real=result["real"],
+            fake=result["fake"],
+            source="Live Audio Stream",
+            filename=call_id,
+            chunk="stream_window",
+            model_name="Wav2Vec2 Deepfake Detector",
+            voice_metrics=result.get(
+                "voice_metrics",
+                {}
+            )
+        )
+
+        final_result["call_id"] = call_id
+        final_result["streaming"] = True
+
+        update_latest(
+            final_result,
+            add_history=True
+        )
+
+        return final_result
+
+    finally:
+
+        if temporary_path and os.path.exists(temporary_path):
+
+            try:
+                os.remove(temporary_path)
+            except Exception:
+                pass
+
+
+if socket is not None:
+
+    @socket.route("/ws/audio/<call_id>")
+    def audio_stream(ws, call_id):
+
+        window_samples = SAMPLE_RATE * 2
+        hop_samples = SAMPLE_RATE // 2
+        audio_buffer = np.empty(0, dtype=np.float32)
+
+        ws.send(json.dumps({
+            "success": True,
+            "message": "Audio stream connected.",
+            "sample_rate": SAMPLE_RATE,
+            "format": "PCM16 mono",
+            "window_seconds": 2,
+            "hop_seconds": 0.5
+        }))
+
+        while True:
+
+            message = ws.receive()
+
+            if message is None:
+                break
+
+            raw_audio = decode_stream_message(message)
+
+            if raw_audio == b"":
+                break
+
+            if not raw_audio:
+                continue
+
+            samples = np.frombuffer(
+                raw_audio,
+                dtype=np.int16
+            ).astype(np.float32) / 32768.0
+
+            audio_buffer = np.concatenate(
+                (audio_buffer, samples)
+            )
+
+            while len(audio_buffer) >= window_samples:
+
+                window = audio_buffer[:window_samples]
+                result = analyze_stream_window(
+                    window,
+                    call_id
+                )
+
+                if result is not None:
+                    ws.send(json.dumps({
+                        "success": True,
+                        "result": result
+                    }))
+
+                audio_buffer = audio_buffer[hop_samples:]
 
 
 # ============================================================
@@ -2144,6 +2458,15 @@ def api_health():
         "status": "online",
 
         "audio_model": "ready",
+
+        "streaming_audio": (
+            "ready"
+            if socket is not None
+            else "unavailable"
+        ),
+
+        "streaming_audio_import_error":
+            SOCKET_IMPORT_ERROR,
 
         "image_model": (
             "ready"

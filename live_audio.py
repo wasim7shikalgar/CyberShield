@@ -18,8 +18,8 @@ PROJECT_ROOT = os.path.dirname(
 )
 
 # Existing live-monitoring requirement
-CHUNK_DURATION = 3
-CHUNK_DELAY = 0.5
+CHUNK_DURATION = 2
+CHUNK_DELAY = 0.25
 
 OUTPUT_FOLDER = os.path.join(
     PROJECT_ROOT,
@@ -244,7 +244,7 @@ def set_recording_status(status):
 
 
 # ============================================================
-# RECORD ONE 3-SECOND CHUNK
+# RECORD ONE LOW-LATENCY CHUNK
 # ============================================================
 
 def record_chunk(current_chunk_number):
