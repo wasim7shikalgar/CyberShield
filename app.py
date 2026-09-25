@@ -41,50 +41,61 @@ from live_audio import (
 # IMAGE / VIDEO DETECTORS
 # ============================================================
 
-try:
-    from image_detector import (
-        initialize as initialize_image_detector,
-        detect_image
+ENABLE_MEDIA_DETECTORS = (
+    os.environ.get(
+        "ENABLE_MEDIA_DETECTORS",
+        "true"
+    ).lower()
+    in {
+        "1",
+        "true",
+        "yes",
+        "on"
+    }
+)
+
+initialize_image_detector = None
+detect_image = None
+IMAGE_DETECTOR_IMPORT_ERROR = None
+
+initialize_video_detector = None
+detect_video = None
+VIDEO_DETECTOR_IMPORT_ERROR = None
+
+if ENABLE_MEDIA_DETECTORS:
+
+    try:
+        from image_detector import (
+            initialize as initialize_image_detector,
+            detect_image
+        )
+
+    except Exception as error:
+
+        IMAGE_DETECTOR_IMPORT_ERROR = str(error)
+        print("IMAGE DETECTOR IMPORT ERROR")
+        print(error)
+
+    try:
+        from video_detector import (
+            initialize as initialize_video_detector,
+            detect_video
+        )
+
+    except Exception as error:
+
+        VIDEO_DETECTOR_IMPORT_ERROR = str(error)
+        print("VIDEO DETECTOR IMPORT ERROR")
+        print(error)
+
+else:
+
+    IMAGE_DETECTOR_IMPORT_ERROR = (
+        "Disabled for voice-focused deployment."
     )
-
-    IMAGE_DETECTOR_IMPORT_ERROR = None
-
-except Exception as error:
-
-    initialize_image_detector = None
-    detect_image = None
-    IMAGE_DETECTOR_IMPORT_ERROR = str(error)
-
-    print()
-    print("=" * 70)
-    print("IMAGE DETECTOR IMPORT ERROR")
-    print("=" * 70)
-    print(error)
-    traceback.print_exc()
-    print("=" * 70)
-
-
-try:
-    from video_detector import (
-        initialize as initialize_video_detector,
-        detect_video
+    VIDEO_DETECTOR_IMPORT_ERROR = (
+        "Disabled for voice-focused deployment."
     )
-
-    VIDEO_DETECTOR_IMPORT_ERROR = None
-
-except Exception as error:
-
-    initialize_video_detector = None
-    detect_video = None
-    VIDEO_DETECTOR_IMPORT_ERROR = str(error)
-
-    print()
-    print("=" * 70)
-    print("VIDEO DETECTOR IMPORT ERROR")
-    print("=" * 70)
-    print(error)
-    traceback.print_exc()
-    print("=" * 70)
 
 
 # ============================================================

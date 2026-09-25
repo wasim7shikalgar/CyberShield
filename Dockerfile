@@ -15,7 +15,13 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir \
+    --index-url https://download.pytorch.org/whl/cpu \
+    torch torchvision torchaudio
+RUN grep -viE '^\s*(torch|torchvision|torchaudio)([<=>].*)?\s*$' requirements.txt \
+    > /tmp/requirements.render.txt \
+    && pip install --no-cache-dir -r /tmp/requirements.render.txt \
+    && rm -f /tmp/requirements.render.txt
 
 COPY . .
 
