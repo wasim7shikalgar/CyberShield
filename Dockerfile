@@ -2,7 +2,8 @@ FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PORT=7860
+    PORT=7860 \
+    ENABLE_MEDIA_DETECTORS=false
 
 WORKDIR /app
 
@@ -14,14 +15,11 @@ RUN apt-get update \
         gcc \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
+COPY requirements.audio.txt .
 RUN pip install --no-cache-dir \
     --index-url https://download.pytorch.org/whl/cpu \
     torch torchvision torchaudio
-RUN grep -viE '^\s*(torch|torchvision|torchaudio)([<=>].*)?\s*$' requirements.txt \
-    > /tmp/requirements.render.txt \
-    && pip install --no-cache-dir -r /tmp/requirements.render.txt \
-    && rm -f /tmp/requirements.render.txt
+RUN pip install --no-cache-dir -r requirements.audio.txt
 
 COPY . .
 
