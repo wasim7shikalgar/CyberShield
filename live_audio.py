@@ -670,7 +670,6 @@ def main():
     except KeyboardInterrupt:
 
         stop_recording()
-
         print(
             "\n🛑 Stopped by user."
         )

@@ -17,3 +17,4 @@ tqdm
 pillow
 requests
 PyYAML
+reportlab>=4.2,<5

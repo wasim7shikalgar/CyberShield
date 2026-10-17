@@ -7,3 +7,4 @@ sounddevice
 soundfile
 transformers
 numpy
+reportlab>=4.2,<5

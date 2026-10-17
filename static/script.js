@@ -5,12 +5,10 @@
    =========================================================
    FEATURES
    ---------------------------------------------------------
-   1. Flask live microphone monitoring
-      - Existing 3-second chunk workflow
-      - /api/audio/start
-      - /api/audio/status
+   1. Browser live microphone monitoring
+      - PCM16 mono stream at 16 kHz over WebSocket
+      - /ws/audio/<call_id>
       - /api/latest
-      - /api/audio/stop
 
     2. 1-minute browser recording
       - Browser microphone
@@ -74,6 +72,17 @@ let recordWaveAnimationFrame = null;
 let selectedMediaType = null;
 let selectedMediaFile = null;
 
+let liveAudioStream = null;
+let liveAudioContext = null;
+let liveAudioSource = null;
+let liveAudioProcessor = null;
+let liveAudioMuteGain = null;
+let liveAudioSocket = null;
+let activeLiveCallId = "";
+let liveCaptureChunks = [];
+let liveCaptureSamples = 0;
+const LIVE_CAPTURE_MAX_SECONDS = 120;
+
 let selectedScanMode = "standard";
 let sensitivityValue = 50;
 let autoScanEnabled = false;
@@ -89,9 +98,694 @@ let lastLiveResultId = "";
 let lastAppliedResultId = "";
 
 const HISTORY_STORAGE_KEY = "cybershield_audit_history_v2";
+const LANGUAGE_STORAGE_KEY = "cybershield_language";
 
 const RECORD_DURATION_SECONDS = 60;
 
+const LANGUAGE_TRANSLATIONS = {
+    hi: {
+        "Language": "भाषा",
+        "AI SECURITY PLATFORM": "एआई सुरक्षा प्लेटफ़ॉर्म",
+        "COMMAND CENTER": "नियंत्रण केंद्र",
+        "SECURITY MODE": "सुरक्षा मोड",
+        "Overview": "अवलोकन",
+        "Media Scanner": "मीडिया स्कैनर",
+        "Live Detection": "लाइव पहचान",
+        "Record & Scan": "रिकॉर्ड करें और स्कैन करें",
+        "Analytics": "विश्लेषण",
+        "Scan History": "स्कैन इतिहास",
+        "System Status": "सिस्टम स्थिति",
+        "AI Protection": "एआई सुरक्षा",
+        "Active": "सक्रिय",
+        "Threat Engine": "खतरा पहचान प्रणाली",
+        "AI Models": "एआई मॉडल",
+        "Detection Node 01": "पहचान नोड 01",
+        "AI CYBERSECURITY COMMAND CENTER": "एआई साइबर सुरक्षा नियंत्रण केंद्र",
+        "Deepfake Threat Detection": "डीपफेक खतरा पहचान",
+        "Multimodal AI analysis for audio, video and image authenticity.": "ऑडियो, वीडियो और छवि की प्रामाणिकता के लिए मल्टीमॉडल एआई विश्लेषण।",
+        "System Online": "सिस्टम ऑनलाइन",
+        "Waiting for telemetry...": "टेलीमेट्री की प्रतीक्षा...",
+        "OVERVIEW": "अवलोकन",
+        "Security Overview": "सुरक्षा अवलोकन",
+        "LIVE MONITORING": "लाइव निगरानी",
+        "TOTAL SCANS": "कुल स्कैन",
+        "AUTHENTIC MEDIA": "प्रामाणिक मीडिया",
+        "SUSPICIOUS": "संदिग्ध",
+        "THREATS DETECTED": "पहचाने गए खतरे",
+        "Session activity": "सत्र गतिविधि",
+        "Verified as real": "असली के रूप में सत्यापित",
+        "Requires attention": "ध्यान देने की आवश्यकता",
+        "AI flagged media": "एआई द्वारा चिह्नित मीडिया",
+        "MULTIMODAL SCANNER": "मल्टीमॉडल स्कैनर",
+        "Analyze Media": "मीडिया का विश्लेषण करें",
+        "AI ENGINE READY": "एआई इंजन तैयार",
+        "Media Input": "मीडिया इनपुट",
+        "Select or drop media for analysis": "विश्लेषण के लिए मीडिया चुनें या यहाँ छोड़ें",
+        "Audio": "ऑडियो",
+        "Voice / Call Recording": "आवाज़ / कॉल रिकॉर्डिंग",
+        "Video": "वीडियो",
+        "Face / Deepfake Analysis": "चेहरा / डीपफेक विश्लेषण",
+        "Image": "छवि",
+        "Face / Synthetic Media": "चेहरा / कृत्रिम मीडिया",
+        "Upload": "अपलोड करें",
+        "Drop your media here": "अपना मीडिया यहाँ छोड़ें",
+        "or choose Audio, Video or Image above": "या ऊपर ऑडियो, वीडियो अथवा छवि चुनें",
+        "🔒 Files are processed by CyberShield AI": "🔒 फ़ाइलों को CyberShield AI द्वारा संसाधित किया जाता है",
+        "No file selected": "कोई फ़ाइल नहीं चुनी गई",
+        "Remove selected media file": "चयनित मीडिया फ़ाइल हटाएँ",
+        "Remove selected file": "चयनित फ़ाइल हटाएँ",
+        "Detection Configuration": "पहचान कॉन्फ़िगरेशन",
+        "Configure analysis behaviour": "विश्लेषण का तरीका सेट करें",
+        "Scan Mode": "स्कैन मोड",
+        "Analysis depth": "विश्लेषण की गहराई",
+        "Quick": "त्वरित",
+        "Fast scan": "तेज़ स्कैन",
+        "Standard": "मानक",
+        "Balanced": "संतुलित",
+        "Deep": "गहन",
+        "Maximum": "अधिकतम",
+        "Detection Sensitivity": "पहचान संवेदनशीलता",
+        "High": "उच्च",
+        "Strict": "कड़ा",
+        "Automatic Analysis": "स्वचालित विश्लेषण",
+        "Start analysis when supported media is selected": "समर्थित मीडिया चुनते ही विश्लेषण शुरू करें",
+        "Start AI Analysis": "एआई विश्लेषण शुरू करें",
+        "AI inference engine": "एआई अनुमान इंजन",
+        "REAL-TIME AUDIO INTELLIGENCE": "रीयल-टाइम ऑडियो विश्लेषण",
+        "Live Threat Monitor": "लाइव खतरा निगरानी",
+        "STANDBY": "प्रतीक्षा में",
+        "Microphone standby": "माइक्रोफ़ोन प्रतीक्षा में",
+        "Start Live Detection": "लाइव पहचान शुरू करें",
+        "Stop": "रोकें",
+        "Download exact detector input (WAV)": "डिटेक्टर का मूल इनपुट डाउनलोड करें (WAV)",
+        "Optional debug capture: up to 120 seconds, stored only in this browser.": "वैकल्पिक डिबग रिकॉर्डिंग: अधिकतम 120 सेकंड, केवल इसी ब्राउज़र में संग्रहित।",
+        "STATUS": "स्थिति",
+        "LATEST CHUNK": "नवीनतम भाग",
+        "SAMPLE RATE": "सैंपल दर",
+        "MODEL": "मॉडल",
+        "AI Verdict": "एआई का निष्कर्ष",
+        "Latest voice analysis": "नवीनतम आवाज़ विश्लेषण",
+        "CONFIDENCE": "विश्वास स्तर",
+        "CURRENT CLASSIFICATION": "वर्तमान वर्गीकरण",
+        "Start live detection to begin AI analysis.": "एआई विश्लेषण शुरू करने के लिए लाइव पहचान चालू करें।",
+        "Real Probability": "असली होने की संभावना",
+        "Fake Probability": "नकली होने की संभावना",
+        "ANALYSIS": "विश्लेषण",
+        "Audio Activity": "ऑडियो गतिविधि",
+        "Speech Activity": "वाक् गतिविधि",
+        "Risk Level": "जोखिम स्तर",
+        "ANALYTICS": "विश्लेषण",
+        "Detection Analytics": "पहचान विश्लेषिकी",
+        "Media Activity": "मीडिया गतिविधि",
+        "Detection pipeline usage": "पहचान प्रक्रिया का उपयोग",
+        "AUDIT TRAIL": "ऑडिट रिकॉर्ड",
+        "Search scans...": "स्कैन खोजें...",
+        "All Results": "सभी परिणाम",
+        "Real": "असली",
+        "Fake": "नकली",
+        "↻ Refresh": "↻ रीफ़्रेश",
+        "Refresh scan history": "स्कैन इतिहास रीफ़्रेश करें",
+        "↓ Export": "↓ निर्यात",
+        "Clear": "साफ़ करें",
+        "TIME": "समय",
+        "MEDIA": "मीडिया",
+        "RESULT": "परिणाम",
+        "CONFIDENCE": "विश्वास स्तर",
+        "RISK": "जोखिम",
+        "MODEL": "मॉडल",
+        "No active analysis.": "कोई सक्रिय विश्लेषण नहीं।",
+        "Media Type": "मीडिया प्रकार",
+        "Confidence": "विश्वास स्तर",
+        "AI Model": "एआई मॉडल",
+        "THREAT ASSESSMENT": "खतरे का आकलन",
+        "Fraud Risk Score": "धोखाधड़ी जोखिम स्कोर",
+        "RISK ENGINE": "जोखिम इंजन",
+        "CURRENT RISK": "वर्तमान जोखिम",
+        "No immediate threat detected.": "कोई तात्कालिक खतरा नहीं मिला।",
+        "LOW": "कम",
+        "MEDIUM": "मध्यम",
+        "HIGH": "उच्च",
+        "MODEL TELEMETRY": "मॉडल टेलीमेट्री",
+        "AI Analysis Signals": "एआई विश्लेषण संकेत",
+        "● TELEMETRY LIVE": "● टेलीमेट्री लाइव",
+        "Inference Model": "अनुमान मॉडल",
+        "Classification": "वर्गीकरण",
+        "Inference Status": "अनुमान स्थिति",
+        "INFERENCE ENGINE": "अनुमान इंजन",
+        "RISK ENGINE": "जोखिम इंजन",
+        "Multimodal Deepfake Detection Platform": "मल्टीमॉडल डीपफेक पहचान प्लेटफ़ॉर्म",
+        "System health check unavailable": "सिस्टम स्वास्थ्य जाँच उपलब्ध नहीं",
+        "Select an audio, video, or image file first.": "पहले ऑडियो, वीडियो या छवि फ़ाइल चुनें।",
+        "Unsupported media type.": "असमर्थित मीडिया प्रकार।",
+        "Preparing media...": "मीडिया तैयार किया जा रहा है...",
+        "Uploading media...": "मीडिया अपलोड हो रहा है...",
+        "Running AI detector...": "एआई डिटेक्टर चल रहा है...",
+        "Calculating authenticity risk...": "प्रामाणिकता जोखिम की गणना हो रही है...",
+        "Updating forensic dashboard...": "फॉरेंसिक डैशबोर्ड अपडेट हो रहा है...",
+        "Analysis complete.": "विश्लेषण पूरा हुआ।",
+        "Scan Complete": "स्कैन पूरा हुआ",
+        "Scan Failed": "स्कैन विफल",
+        "Unable to analyze audio.": "ऑडियो का विश्लेषण नहीं हो सका।",
+        "Media scan failed.": "मीडिया स्कैन विफल हुआ।",
+        "Audio Scanner Ready": "ऑडियो स्कैनर तैयार",
+        "Select an audio file to begin.": "शुरू करने के लिए ऑडियो फ़ाइल चुनें।",
+        "No audio selected": "कोई ऑडियो नहीं चुना गया",
+        "Ready to scan": "स्कैन के लिए तैयार",
+        "Click Scan Audio to analyze this file.": "इस फ़ाइल का विश्लेषण करने के लिए ऑडियो स्कैन पर क्लिक करें।",
+        "The selected file is too large.": "चयनित फ़ाइल बहुत बड़ी है।",
+        "Microphone access requires HTTPS or localhost. Open this app at http://localhost:7860, or use an HTTPS URL.": "माइक्रोफ़ोन के लिए HTTPS या localhost ज़रूरी है। यह ऐप http://localhost:7860 पर खोलें या HTTPS URL इस्तेमाल करें।",
+        "This browser does not support MediaRecorder.": "यह ब्राउज़र MediaRecorder का समर्थन नहीं करता।",
+        "This browser does not support live audio processing.": "यह ब्राउज़र लाइव ऑडियो प्रोसेसिंग का समर्थन नहीं करता।",
+        "Could not connect to the live detector. Confirm Flask-Sock is available and restart the Flask server.": "लाइव डिटेक्टर से कनेक्शन नहीं हो सका। Flask-Sock उपलब्ध होने की पुष्टि करें और Flask सर्वर फिर शुरू करें।",
+        "Use HTTPS or localhost to enable the microphone.": "माइक्रोफ़ोन चालू करने के लिए HTTPS या localhost इस्तेमाल करें।",
+        "Your browser microphone is streaming to the live AI detector.": "आपके ब्राउज़र का माइक्रोफ़ोन लाइव एआई डिटेक्टर को ऑडियो भेज रहा है।",
+        "Audio status:": "ऑडियो स्थिति:",
+        "Download exact detector input (WAV)": "डिटेक्टर का मूल इनपुट डाउनलोड करें (WAV)",
+        "FORENSIC AUDIO SCAN": "फॉरेंसिक ऑडियो स्कैन",
+        "Record & Scan": "रिकॉर्ड करें और स्कैन करें",
+        "Record a 1-minute voice sample and analyze it as one complete audio file.": "एक मिनट का आवाज़ नमूना रिकॉर्ड करें और पूरी ऑडियो फ़ाइल का विश्लेषण करें।",
+        "RECORDING STATUS": "रिकॉर्डिंग स्थिति",
+        "Click Start Recording to capture a 1-minute sample.": "एक मिनट का नमूना रिकॉर्ड करने के लिए रिकॉर्डिंग शुरू करें पर क्लिक करें।",
+        "AUDIO CAPTURE": "ऑडियो रिकॉर्डिंग",
+        "Start Recording": "रिकॉर्डिंग शुरू करें",
+        "RECORDED AUDIO": "रिकॉर्ड किया गया ऑडियो",
+        "NOT READY": "तैयार नहीं",
+        "No recording yet": "अभी कोई रिकॉर्डिंग नहीं",
+        "Record 1 minute to create an audio sample.": "ऑडियो नमूना बनाने के लिए एक मिनट रिकॉर्ड करें।",
+        "No scan activity yet": "अभी कोई स्कैन गतिविधि नहीं",
+        "Start a live detection or upload supported media.": "लाइव पहचान शुरू करें या समर्थित मीडिया अपलोड करें।",
+        "BLOCKCHAIN": "ब्लॉकचेन",
+        "INFRASTRUCTURE": "बुनियादी ढाँचा",
+        "Audio Detection": "ऑडियो पहचान",
+        "Video Detection": "वीडियो पहचान",
+        "Image Detection": "छवि पहचान",
+        "Threat Scoring": "खतरा स्कोरिंग",
+        "API STATUS": "एपीआई स्थिति",
+        "CONNECTING": "कनेक्ट हो रहा है",
+        "NODE": "नोड",
+        "SECURITY INTELLIGENCE": "सुरक्षा जानकारी",
+        "Detection Distribution": "पहचान का वितरण",
+        "Current session": "वर्तमान सत्र",
+        "scans": "स्कैन",
+        "Search": "खोजें",
+        "Filter": "फ़िल्टर",
+        "Export": "निर्यात",
+        "Scan Audio": "ऑडियो स्कैन करें",
+        "Recording complete": "रिकॉर्डिंग पूरी हुई",
+        "Permission denied": "अनुमति अस्वीकृत",
+        "Microphone access was denied.": "माइक्रोफ़ोन की अनुमति नहीं मिली।",
+        "Live detection started.": "लाइव पहचान शुरू हुई।",
+        "Live detection stopped.": "लाइव पहचान रुक गई।",
+        "Could not start recording.": "रिकॉर्डिंग शुरू नहीं हो सकी।",
+        "Could not stop recording.": "रिकॉर्डिंग बंद नहीं हो सकी।",
+        "Please select a file.": "कृपया फ़ाइल चुनें।",
+        "Please wait for the current scan to finish.": "वर्तमान स्कैन पूरा होने तक प्रतीक्षा करें।",
+        "History cleared.": "इतिहास साफ़ किया गया।",
+        "Failed to clear history.": "इतिहास साफ़ नहीं हो सका।",
+        "Failed to load scan history.": "स्कैन इतिहास लोड नहीं हो सका।",
+        "Audio scan complete.": "ऑडियो स्कैन पूरा हुआ।",
+        "Image scan complete.": "छवि स्कैन पूरा हुआ।",
+        "Video scan complete.": "वीडियो स्कैन पूरा हुआ।",
+        "Audio scan failed.": "ऑडियो स्कैन विफल हुआ।",
+        "Image scan failed.": "छवि स्कैन विफल हुआ।",
+        "Video scan failed.": "वीडियो स्कैन विफल हुआ।",
+        "ONLINE": "ऑनलाइन",
+        "READY": "तैयार",
+        "WAITING": "प्रतीक्षा में",
+        "LIVE": "लाइव",
+        "ACTIVE": "सक्रिय",
+        "IDLE": "निष्क्रिय",
+        "UNAVAILABLE": "उपलब्ध नहीं",
+        "OPERATIONAL": "कार्यरत",
+        "REAL": "असली",
+        "FAKE": "नकली",
+        "LATEST EVENT": "नवीनतम घटना",
+        "DETECTION RESULT": "पहचान परिणाम",
+        "Current Analysis": "वर्तमान विश्लेषण",
+        "FORENSIC RESULT": "फॉरेंसिक परिणाम",
+        "Scan Recorded Audio": "रिकॉर्ड किया गया ऑडियो स्कैन करें",
+        "No scan activity yet": "अभी कोई स्कैन गतिविधि नहीं",
+        "Start a live detection or upload supported media.": "लाइव पहचान शुरू करें या समर्थित मीडिया अपलोड करें।",
+        "INFRASTRUCTURE": "बुनियादी ढाँचा",
+        "Audio Detection": "ऑडियो पहचान",
+        "Video Detection": "वीडियो पहचान",
+        "Image Detection": "छवि पहचान",
+        "Threat Scoring": "खतरा स्कोरिंग",
+        "API STATUS": "एपीआई स्थिति",
+        "SECURITY INTELLIGENCE": "सुरक्षा जानकारी",
+        "Detection Distribution": "पहचान का वितरण",
+        "Current session": "वर्तमान सत्र",
+        "scans": "स्कैन",
+        "HASH-CHAIN LEDGER CHECKING...": "हैश-चेन लेज़र की जाँच हो रही है...",
+        "HASH-CHAIN LEDGER VALID": "हैश-चेन लेज़र सही है",
+        "HASH-CHAIN LEDGER INVALID": "हैश-चेन लेज़र अमान्य है",
+        "BLOCKS": "ब्लॉक"
+    },
+    mr: {
+        "Language": "भाषा",
+        "AI SECURITY PLATFORM": "एआय सुरक्षा प्लॅटफॉर्म",
+        "COMMAND CENTER": "नियंत्रण केंद्र",
+        "SECURITY MODE": "सुरक्षा मोड",
+        "Overview": "आढावा",
+        "Media Scanner": "मीडिया स्कॅनर",
+        "Live Detection": "थेट शोध",
+        "Record & Scan": "रेकॉर्ड करा आणि स्कॅन करा",
+        "Analytics": "विश्लेषण",
+        "Scan History": "स्कॅन इतिहास",
+        "System Status": "प्रणाली स्थिती",
+        "AI Protection": "एआय संरक्षण",
+        "Active": "सक्रिय",
+        "Threat Engine": "धोका शोध प्रणाली",
+        "AI Models": "एआय मॉडेल्स",
+        "Detection Node 01": "शोध नोड 01",
+        "AI CYBERSECURITY COMMAND CENTER": "एआय सायबर सुरक्षा नियंत्रण केंद्र",
+        "Deepfake Threat Detection": "डीपफेक धोका शोध",
+        "Multimodal AI analysis for audio, video and image authenticity.": "ऑडिओ, व्हिडिओ आणि प्रतिमेच्या सत्यतेसाठी मल्टिमोडल एआय विश्लेषण.",
+        "System Online": "प्रणाली ऑनलाइन",
+        "Waiting for telemetry...": "टेलीमेट्रीची प्रतीक्षा...",
+        "OVERVIEW": "आढावा",
+        "Security Overview": "सुरक्षा आढावा",
+        "LIVE MONITORING": "थेट निरीक्षण",
+        "TOTAL SCANS": "एकूण स्कॅन",
+        "AUTHENTIC MEDIA": "प्रामाणिक मीडिया",
+        "SUSPICIOUS": "संशयास्पद",
+        "THREATS DETECTED": "आढळलेले धोके",
+        "Session activity": "सत्रातील हालचाल",
+        "Verified as real": "खरे असल्याची पडताळणी",
+        "Requires attention": "लक्ष देणे आवश्यक",
+        "AI flagged media": "एआयने चिन्हांकित केलेले मीडिया",
+        "MULTIMODAL SCANNER": "मल्टिमोडल स्कॅनर",
+        "Analyze Media": "मीडियाचे विश्लेषण करा",
+        "AI ENGINE READY": "एआय इंजिन तयार",
+        "Media Input": "मीडिया इनपुट",
+        "Select or drop media for analysis": "विश्लेषणासाठी मीडिया निवडा किंवा येथे सोडा",
+        "Audio": "ऑडिओ",
+        "Voice / Call Recording": "आवाज / कॉल रेकॉर्डिंग",
+        "Video": "व्हिडिओ",
+        "Face / Deepfake Analysis": "चेहरा / डीपफेक विश्लेषण",
+        "Image": "प्रतिमा",
+        "Face / Synthetic Media": "चेहरा / कृत्रिम मीडिया",
+        "Upload": "अपलोड करा",
+        "Drop your media here": "तुमचे मीडिया येथे सोडा",
+        "or choose Audio, Video or Image above": "किंवा वरून ऑडिओ, व्हिडिओ अथवा प्रतिमा निवडा",
+        "🔒 Files are processed by CyberShield AI": "🔒 फाइल्सवर CyberShield AI प्रक्रिया करते",
+        "No file selected": "कोणतीही फाइल निवडलेली नाही",
+        "Remove selected media file": "निवडलेली मीडिया फाइल काढा",
+        "Remove selected file": "निवडलेली फाइल काढा",
+        "Detection Configuration": "शोध संरचना",
+        "Configure analysis behaviour": "विश्लेषणाची पद्धत ठरवा",
+        "Scan Mode": "स्कॅन मोड",
+        "Analysis depth": "विश्लेषणाची खोली",
+        "Quick": "जलद",
+        "Fast scan": "जलद स्कॅन",
+        "Standard": "मानक",
+        "Balanced": "संतुलित",
+        "Deep": "सखोल",
+        "Maximum": "कमाल",
+        "Detection Sensitivity": "शोध संवेदनशीलता",
+        "High": "उच्च",
+        "Strict": "कठोर",
+        "Automatic Analysis": "स्वयंचलित विश्लेषण",
+        "Start analysis when supported media is selected": "समर्थित मीडिया निवडल्यावर विश्लेषण सुरू करा",
+        "Start AI Analysis": "एआय विश्लेषण सुरू करा",
+        "AI inference engine": "एआय अनुमान इंजिन",
+        "REAL-TIME AUDIO INTELLIGENCE": "रिअल-टाइम ऑडिओ विश्लेषण",
+        "Live Threat Monitor": "थेट धोका निरीक्षण",
+        "STANDBY": "प्रतीक्षेत",
+        "Microphone standby": "मायक्रोफोन प्रतीक्षेत",
+        "Start Live Detection": "थेट शोध सुरू करा",
+        "Stop": "थांबवा",
+        "Download exact detector input (WAV)": "डिटेक्टरचा मूळ इनपुट डाउनलोड करा (WAV)",
+        "Optional debug capture: up to 120 seconds, stored only in this browser.": "ऐच्छिक डीबग रेकॉर्डिंग: कमाल 120 सेकंद, फक्त याच ब्राउझरमध्ये साठवले जाते.",
+        "STATUS": "स्थिती",
+        "LATEST CHUNK": "नवीनतम भाग",
+        "SAMPLE RATE": "नमुना दर",
+        "MODEL": "मॉडेल",
+        "AI Verdict": "एआयचा निष्कर्ष",
+        "Latest voice analysis": "नवीनतम आवाज विश्लेषण",
+        "CONFIDENCE": "विश्वास पातळी",
+        "CURRENT CLASSIFICATION": "सध्याचे वर्गीकरण",
+        "Start live detection to begin AI analysis.": "एआय विश्लेषण सुरू करण्यासाठी थेट शोध सुरू करा.",
+        "Real Probability": "खरे असण्याची शक्यता",
+        "Fake Probability": "बनावट असण्याची शक्यता",
+        "ANALYSIS": "विश्लेषण",
+        "Audio Activity": "ऑडिओ हालचाल",
+        "Speech Activity": "वाणी हालचाल",
+        "Risk Level": "धोका पातळी",
+        "ANALYTICS": "विश्लेषण",
+        "Detection Analytics": "शोध विश्लेषण",
+        "Media Activity": "मीडिया हालचाल",
+        "Detection pipeline usage": "शोध प्रक्रियेचा वापर",
+        "AUDIT TRAIL": "ऑडिट नोंद",
+        "Search scans...": "स्कॅन शोधा...",
+        "All Results": "सर्व निकाल",
+        "Real": "खरे",
+        "Fake": "बनावट",
+        "↻ Refresh": "↻ पुन्हा लोड करा",
+        "Refresh scan history": "स्कॅन इतिहास पुन्हा लोड करा",
+        "↓ Export": "↓ निर्यात",
+        "Clear": "पुसून टाका",
+        "TIME": "वेळ",
+        "MEDIA": "मीडिया",
+        "RESULT": "निकाल",
+        "RISK": "धोका",
+        "No active analysis.": "सध्या कोणतेही विश्लेषण सुरू नाही.",
+        "Media Type": "मीडिया प्रकार",
+        "Confidence": "विश्वास पातळी",
+        "AI Model": "एआय मॉडेल",
+        "THREAT ASSESSMENT": "धोका मूल्यांकन",
+        "Fraud Risk Score": "फसवणूक धोका गुण",
+        "RISK ENGINE": "धोका इंजिन",
+        "CURRENT RISK": "सध्याचा धोका",
+        "No immediate threat detected.": "तातडीचा धोका आढळला नाही.",
+        "LOW": "कमी",
+        "MEDIUM": "मध्यम",
+        "HIGH": "उच्च",
+        "MODEL TELEMETRY": "मॉडेल टेलीमेट्री",
+        "AI Analysis Signals": "एआय विश्लेषण संकेत",
+        "● TELEMETRY LIVE": "● टेलीमेट्री सुरू",
+        "Inference Model": "अनुमान मॉडेल",
+        "Classification": "वर्गीकरण",
+        "Inference Status": "अनुमान स्थिती",
+        "INFERENCE ENGINE": "अनुमान इंजिन",
+        "Multimodal Deepfake Detection Platform": "मल्टिमोडल डीपफेक शोध प्लॅटफॉर्म",
+        "System health check unavailable": "प्रणाली आरोग्य तपासणी उपलब्ध नाही",
+        "Select an audio, video, or image file first.": "प्रथम ऑडिओ, व्हिडिओ किंवा प्रतिमा फाइल निवडा.",
+        "Unsupported media type.": "असमर्थित मीडिया प्रकार.",
+        "Preparing media...": "मीडिया तयार करत आहे...",
+        "Uploading media...": "मीडिया अपलोड होत आहे...",
+        "Running AI detector...": "एआय डिटेक्टर सुरू आहे...",
+        "Calculating authenticity risk...": "सत्यता धोक्याची गणना होत आहे...",
+        "Updating forensic dashboard...": "फॉरेन्सिक डॅशबोर्ड अद्ययावत होत आहे...",
+        "Analysis complete.": "विश्लेषण पूर्ण झाले.",
+        "Scan Complete": "स्कॅन पूर्ण",
+        "Scan Failed": "स्कॅन अयशस्वी",
+        "Unable to analyze audio.": "ऑडिओचे विश्लेषण करता आले नाही.",
+        "Media scan failed.": "मीडिया स्कॅन अयशस्वी.",
+        "Audio Scanner Ready": "ऑडिओ स्कॅनर तयार",
+        "Select an audio file to begin.": "सुरू करण्यासाठी ऑडिओ फाइल निवडा.",
+        "No audio selected": "ऑडिओ निवडलेला नाही",
+        "Ready to scan": "स्कॅनसाठी तयार",
+        "Click Scan Audio to analyze this file.": "या फाइलचे विश्लेषण करण्यासाठी ऑडिओ स्कॅनवर क्लिक करा.",
+        "The selected file is too large.": "निवडलेली फाइल खूप मोठी आहे.",
+        "Microphone access requires HTTPS or localhost. Open this app at http://localhost:7860, or use an HTTPS URL.": "मायक्रोफोनसाठी HTTPS किंवा localhost आवश्यक आहे. हे अॅप http://localhost:7860 येथे उघडा किंवा HTTPS URL वापरा.",
+        "This browser does not support MediaRecorder.": "हा ब्राउझर MediaRecorder ला समर्थन देत नाही.",
+        "This browser does not support live audio processing.": "हा ब्राउझर थेट ऑडिओ प्रक्रियेला समर्थन देत नाही.",
+        "Could not connect to the live detector. Confirm Flask-Sock is available and restart the Flask server.": "थेट डिटेक्टरशी जोडता आले नाही. Flask-Sock उपलब्ध असल्याची खात्री करून Flask सर्व्हर पुन्हा सुरू करा.",
+        "Use HTTPS or localhost to enable the microphone.": "मायक्रोफोन सुरू करण्यासाठी HTTPS किंवा localhost वापरा.",
+        "Your browser microphone is streaming to the live AI detector.": "तुमच्या ब्राउझरचा मायक्रोफोन थेट एआय डिटेक्टरकडे ऑडिओ पाठवत आहे.",
+        "FORENSIC AUDIO SCAN": "फॉरेन्सिक ऑडिओ स्कॅन",
+        "Record & Scan": "रेकॉर्ड करा आणि स्कॅन करा",
+        "Record a 1-minute voice sample and analyze it as one complete audio file.": "एक मिनिटाचा आवाज नमुना रेकॉर्ड करा आणि संपूर्ण ऑडिओ फाइलचे विश्लेषण करा.",
+        "RECORDING STATUS": "रेकॉर्डिंग स्थिती",
+        "Click Start Recording to capture a 1-minute sample.": "एक मिनिटाचा नमुना रेकॉर्ड करण्यासाठी रेकॉर्डिंग सुरू करा वर क्लिक करा.",
+        "AUDIO CAPTURE": "ऑडिओ रेकॉर्डिंग",
+        "Start Recording": "रेकॉर्डिंग सुरू करा",
+        "RECORDED AUDIO": "रेकॉर्ड केलेला ऑडिओ",
+        "NOT READY": "तयार नाही",
+        "No recording yet": "अद्याप रेकॉर्डिंग नाही",
+        "Record 1 minute to create an audio sample.": "ऑडिओ नमुना तयार करण्यासाठी एक मिनिट रेकॉर्ड करा.",
+        "No scan activity yet": "अद्याप स्कॅन गतिविधी नाही",
+        "Start a live detection or upload supported media.": "थेट शोध सुरू करा किंवा समर्थित मीडिया अपलोड करा.",
+        "BLOCKCHAIN": "ब्लॉकचेन",
+        "INFRASTRUCTURE": "पायाभूत सुविधा",
+        "Audio Detection": "ऑडिओ शोध",
+        "Video Detection": "व्हिडिओ शोध",
+        "Image Detection": "प्रतिमा शोध",
+        "Threat Scoring": "धोका गुणांकन",
+        "API STATUS": "एपीआय स्थिती",
+        "CONNECTING": "जोडत आहे",
+        "NODE": "नोड",
+        "SECURITY INTELLIGENCE": "सुरक्षा माहिती",
+        "Detection Distribution": "शोध वितरण",
+        "Current session": "सध्याचे सत्र",
+        "scans": "स्कॅन",
+        "Search": "शोधा",
+        "Filter": "फिल्टर",
+        "Export": "निर्यात",
+        "Scan Audio": "ऑडिओ स्कॅन करा",
+        "Recording complete": "रेकॉर्डिंग पूर्ण",
+        "Permission denied": "परवानगी नाकारली",
+        "Microphone access was denied.": "मायक्रोफोनची परवानगी नाकारली गेली.",
+        "Live detection started.": "थेट शोध सुरू झाला.",
+        "Live detection stopped.": "थेट शोध थांबला.",
+        "Could not start recording.": "रेकॉर्डिंग सुरू करता आले नाही.",
+        "Could not stop recording.": "रेकॉर्डिंग थांबवता आले नाही.",
+        "Please select a file.": "कृपया फाइल निवडा.",
+        "Please wait for the current scan to finish.": "सध्याचा स्कॅन पूर्ण होईपर्यंत प्रतीक्षा करा.",
+        "History cleared.": "इतिहास पुसून टाकला.",
+        "Failed to clear history.": "इतिहास पुसता आला नाही.",
+        "Failed to load scan history.": "स्कॅन इतिहास लोड करता आला नाही.",
+        "Audio scan complete.": "ऑडिओ स्कॅन पूर्ण.",
+        "Image scan complete.": "प्रतिमा स्कॅन पूर्ण.",
+        "Video scan complete.": "व्हिडिओ स्कॅन पूर्ण.",
+        "Audio scan failed.": "ऑडिओ स्कॅन अयशस्वी.",
+        "Image scan failed.": "प्रतिमा स्कॅन अयशस्वी.",
+        "Video scan failed.": "व्हिडिओ स्कॅन अयशस्वी.",
+        "ONLINE": "ऑनलाइन",
+        "READY": "तयार",
+        "WAITING": "प्रतीक्षेत",
+        "LIVE": "थेट",
+        "ACTIVE": "सक्रिय",
+        "IDLE": "निष्क्रिय",
+        "UNAVAILABLE": "उपलब्ध नाही",
+        "OPERATIONAL": "कार्यरत",
+        "REAL": "खरे",
+        "FAKE": "बनावट",
+        "LATEST EVENT": "नवीनतम घटना",
+        "DETECTION RESULT": "शोध निकाल",
+        "Current Analysis": "सध्याचे विश्लेषण",
+        "FORENSIC RESULT": "फॉरेन्सिक निकाल",
+        "Scan Recorded Audio": "रेकॉर्ड केलेला ऑडिओ स्कॅन करा",
+        "INFRASTRUCTURE": "पायाभूत सुविधा",
+        "Audio Detection": "ऑडिओ शोध",
+        "Video Detection": "व्हिडिओ शोध",
+        "Image Detection": "प्रतिमा शोध",
+        "Threat Scoring": "धोका गुणांकन",
+        "API STATUS": "एपीआय स्थिती",
+        "SECURITY INTELLIGENCE": "सुरक्षा माहिती",
+        "Detection Distribution": "शोध वितरण",
+        "Current session": "सध्याचे सत्र",
+        "scans": "स्कॅन",
+        "HASH-CHAIN LEDGER CHECKING...": "हॅश-चेन लेजर तपासत आहे...",
+        "HASH-CHAIN LEDGER VALID": "हॅश-चेन लेजर वैध",
+        "HASH-CHAIN LEDGER INVALID": "हॅश-चेन लेजर अवैध",
+        "BLOCKS": "ब्लॉक्स"
+    }
+};
+
+let currentLanguage = "en";
+const originalTextNodes = new WeakMap();
+
+function translateText(value) {
+    const text = String(value);
+    const dictionary =
+        LANGUAGE_TRANSLATIONS[currentLanguage];
+
+    if (!dictionary) {
+        return text;
+    }
+
+    const trimmed = text.trim();
+    let translated = dictionary[trimmed];
+
+    if (!translated) {
+        const analyzing = trimmed.match(
+            /^Analyzing (audio|video|image)\.\.\.$/
+        );
+        const scanning = trimmed.match(
+            /^Scanning (audio|video|image)\.\.\.$/
+        );
+        const scanComplete = trimmed.match(
+            /^(.+) scan complete\.$/
+        );
+        const confidenceResult = trimmed.match(
+            /^(.+) detected with ([\d.]+%) confidence\.$/
+        );
+
+        if (analyzing) {
+            translated = {
+                hi: "विश्लेषण हो रहा है...",
+                mr: "विश्लेषण सुरू आहे..."
+            }[currentLanguage];
+        } else if (scanning) {
+            translated = {
+                hi: "स्कैन हो रहा है...",
+                mr: "स्कॅन सुरू आहे..."
+            }[currentLanguage];
+        } else if (scanComplete) {
+            translated = currentLanguage === "hi"
+                ? `${translateText(scanComplete[1])} स्कैन पूरा हुआ।`
+                : `${translateText(scanComplete[1])} स्कॅन पूर्ण.`;
+        } else if (confidenceResult) {
+            translated = currentLanguage === "hi"
+                ? `${translateText(confidenceResult[1])} मिला; विश्वास स्तर ${confidenceResult[2]}।`
+                : `${translateText(confidenceResult[1])} आढळले; विश्वास पातळी ${confidenceResult[2]}.`;
+        }
+    }
+
+    if (!translated) {
+        return text;
+    }
+
+    const leadingWhitespace =
+        text.match(/^\s*/)?.[0] || "";
+    const trailingWhitespace =
+        text.match(/\s*$/)?.[0] || "";
+
+    return `${leadingWhitespace}${translated}${trailingWhitespace}`;
+}
+
+function translateTextNode(node) {
+    if (!originalTextNodes.has(node)) {
+        originalTextNodes.set(node, node.nodeValue);
+    }
+
+    const original = originalTextNodes.get(node);
+    const translated = translateText(original);
+
+    if (node.nodeValue !== translated) {
+        node.nodeValue = translated;
+    }
+}
+
+function translatePage(root = document.body) {
+    if (!root) {
+        return;
+    }
+
+    const walker = document.createTreeWalker(
+        root,
+        NodeFilter.SHOW_TEXT,
+        {
+            acceptNode(node) {
+                const parent = node.parentElement;
+                if (
+                    !parent ||
+                    parent.closest("script, style, .language-control")
+                ) {
+                    return NodeFilter.FILTER_REJECT;
+                }
+                return NodeFilter.FILTER_ACCEPT;
+            }
+        }
+    );
+
+    let node;
+    while ((node = walker.nextNode())) {
+        translateTextNode(node);
+    }
+
+    root.querySelectorAll?.(
+        "[placeholder], [title], [aria-label]"
+    ).forEach(element => {
+        for (const attribute of [
+            "placeholder",
+            "title",
+            "aria-label"
+        ]) {
+            const value = element.getAttribute(attribute);
+            if (value) {
+                const key = `data-i18n-original-${attribute}`;
+                if (!element.hasAttribute(key)) {
+                    element.setAttribute(key, value);
+                }
+                element.setAttribute(
+                    attribute,
+                    translateText(element.getAttribute(key))
+                );
+            }
+        }
+    });
+}
+
+function initializeLanguageSelector() {
+    const selector = document.getElementById("languageSelect");
+    let savedLanguage = "en";
+
+    try {
+        savedLanguage =
+            window.localStorage.getItem(LANGUAGE_STORAGE_KEY) || "en";
+    } catch (error) {
+        console.warn("Could not read saved dashboard language.", error);
+    }
+
+    currentLanguage =
+        Object.prototype.hasOwnProperty.call(
+            LANGUAGE_TRANSLATIONS,
+            savedLanguage
+        )
+            ? savedLanguage
+            : "en";
+
+    const applyLanguage = language => {
+        currentLanguage =
+            Object.prototype.hasOwnProperty.call(
+                LANGUAGE_TRANSLATIONS,
+                language
+            )
+                ? language
+                : "en";
+
+        document.documentElement.lang =
+            currentLanguage === "hi"
+                ? "hi"
+                : currentLanguage === "mr"
+                    ? "mr"
+                    : "en";
+
+        const languageLabel =
+            document.getElementById("languageLabel");
+        if (languageLabel) {
+            languageLabel.textContent =
+                translateText("Language");
+        }
+
+        translatePage();
+
+        try {
+            window.localStorage.setItem(
+                LANGUAGE_STORAGE_KEY,
+                currentLanguage
+            );
+        } catch (error) {
+            console.warn("Could not save dashboard language.", error);
+        }
+    };
+
+    if (selector) {
+        selector.value = currentLanguage;
+        selector.addEventListener("change", () => {
+            applyLanguage(selector.value);
+        });
+    }
+
+    applyLanguage(currentLanguage);
+
+    if (document.body && typeof MutationObserver !== "undefined") {
+        const observer = new MutationObserver(mutations => {
+            for (const mutation of mutations) {
+                if (mutation.type === "characterData") {
+                    translateTextNode(mutation.target);
+                } else {
+                    mutation.addedNodes.forEach(addedNode => {
+                        if (addedNode.nodeType === Node.TEXT_NODE) {
+                            translateTextNode(addedNode);
+                        } else if (addedNode.nodeType === Node.ELEMENT_NODE) {
+                            translatePage(addedNode);
+                        }
+                    });
+                }
+            }
+        });
+
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true,
+            characterData: true
+        });
+    }
+}
 
 /* =========================================================
    DOM HELPERS
@@ -324,6 +1018,33 @@ function calculateRiskLevel(risk) {
     }
 
     return "HIGH";
+}
+
+
+function setRiskCircleState(
+    circle,
+    fakeProbability,
+    progress
+) {
+    if (!circle) {
+        return;
+    }
+
+    const riskBand =
+        calculateRiskLevel(fakeProbability).toLowerCase();
+    const progressPercentage =
+        toPercentage(progress);
+
+    circle.classList.remove(
+        "low",
+        "medium",
+        "high"
+    );
+    circle.classList.add(riskBand);
+    circle.style.setProperty(
+        "--circle-progress",
+        `${(progressPercentage * 3.6).toFixed(2)}deg`
+    );
 }
 
 
@@ -760,11 +1481,50 @@ function normalizeResult(rawResult) {
 
         source,
 
+        media_hash:
+            String(
+                getFirstDefined(
+                    rawResult,
+                    ["media_hash"],
+                    ""
+                )
+            ),
+
+        block_index:
+            getFirstDefined(
+                rawResult,
+                ["block_index"],
+                null
+            ),
+
+        block_hash:
+            String(
+                getFirstDefined(
+                    rawResult,
+                    ["block_hash"],
+                    ""
+                )
+            ),
+
         chunk,
 
         recording,
 
-        inference
+        inference,
+
+        explanation:
+            getFirstDefined(
+                rawResult,
+                ["explanation"],
+                null
+            ),
+
+        scam_intelligence:
+            getFirstDefined(
+                rawResult,
+                ["scam_intelligence"],
+                null
+            )
     };
 }
 
@@ -985,6 +1745,9 @@ function setSelectedFile(
         el("selectedFileCard");
 
     if (selectedCard) {
+        selectedCard.classList.remove(
+            "hidden"
+        );
         selectedCard.classList.add(
             "active"
         );
@@ -1097,6 +1860,9 @@ function clearSelectedFile() {
     if (selectedCard) {
         selectedCard.classList.remove(
             "active"
+        );
+        selectedCard.classList.add(
+            "hidden"
         );
     }
 
@@ -1655,8 +2421,260 @@ async function scanSelectedAudio() {
 
 
 /* =========================================================
-   LIVE 3-SECOND FLASK MICROPHONE MONITOR
+   LIVE BROWSER MICROPHONE MONITOR
    ========================================================= */
+
+function resampleToMonoPcm16(
+    input,
+    inputRate,
+    outputRate = 16000
+) {
+    if (
+        !input.length ||
+        !Number.isFinite(inputRate) ||
+        inputRate <= 0
+    ) {
+        return new Int16Array(0);
+    }
+
+    const outputLength =
+        Math.floor(
+            input.length *
+            outputRate /
+            inputRate
+        );
+
+    const output =
+        new Int16Array(outputLength);
+
+    for (
+        let index = 0;
+        index < outputLength;
+        index += 1
+    ) {
+        const sourcePosition =
+            index *
+            inputRate /
+            outputRate;
+
+        const sourceIndex =
+            Math.floor(sourcePosition);
+
+        const fraction =
+            sourcePosition -
+            sourceIndex;
+
+        const first =
+            input[sourceIndex] || 0;
+
+        const second =
+            input[
+                Math.min(
+                    sourceIndex + 1,
+                    input.length - 1
+                )
+            ] || 0;
+
+        const sample =
+            Math.max(
+                -1,
+                Math.min(
+                    1,
+                    first +
+                    (second - first) *
+                    fraction
+                )
+            );
+
+        output[index] =
+            sample < 0
+                ? Math.round(sample * 32768)
+                : Math.round(sample * 32767);
+    }
+
+    return output;
+}
+
+
+function resetLiveCapture() {
+    liveCaptureChunks = [];
+    liveCaptureSamples = 0;
+
+    const downloadButton =
+        el("downloadLiveCaptureButton");
+
+    if (downloadButton) {
+        downloadButton.disabled = true;
+    }
+
+    setText(
+        "liveCaptureStatus",
+        `Optional debug capture: up to ${LIVE_CAPTURE_MAX_SECONDS} seconds, stored only in this browser.`
+    );
+}
+
+
+function downloadLiveCapture() {
+    if (liveCaptureSamples === 0) {
+        showToast(
+            "No live microphone audio was captured.",
+            "error"
+        );
+        return;
+    }
+
+    const audioBytes =
+        liveCaptureSamples * Int16Array.BYTES_PER_ELEMENT;
+    const wavHeader =
+        new ArrayBuffer(44);
+    const header =
+        new DataView(wavHeader);
+    const writeText = (offset, text) => {
+        for (let index = 0; index < text.length; index += 1) {
+            header.setUint8(offset + index, text.charCodeAt(index));
+        }
+    };
+
+    writeText(0, "RIFF");
+    header.setUint32(4, 36 + audioBytes, true);
+    writeText(8, "WAVE");
+    writeText(12, "fmt ");
+    header.setUint32(16, 16, true);
+    header.setUint16(20, 1, true);
+    header.setUint16(22, 1, true);
+    header.setUint32(24, 16000, true);
+    header.setUint32(28, 32000, true);
+    header.setUint16(32, 2, true);
+    header.setUint16(34, 16, true);
+    writeText(36, "data");
+    header.setUint32(40, audioBytes, true);
+
+    const audio =
+        new Int16Array(liveCaptureSamples);
+    let offset = 0;
+
+    for (const chunk of liveCaptureChunks) {
+        audio.set(chunk, offset);
+        offset += chunk.length;
+    }
+
+    const wav =
+        new Blob(
+            [wavHeader, audio.buffer],
+            { type: "audio/wav" }
+        );
+    const url =
+        URL.createObjectURL(wav);
+    const link =
+        document.createElement("a");
+
+    link.href = url;
+    link.download = "cybershield-live-microphone.wav";
+    link.click();
+    window.setTimeout(
+        () => URL.revokeObjectURL(url),
+        1000
+    );
+}
+
+
+async function cleanupBrowserLiveAudio() {
+    if (liveAudioProcessor) {
+        liveAudioProcessor.onaudioprocess =
+            null;
+
+        try {
+            liveAudioProcessor.disconnect();
+        } catch {}
+
+        liveAudioProcessor = null;
+    }
+
+    if (liveAudioSource) {
+        try {
+            liveAudioSource.disconnect();
+        } catch {}
+
+        liveAudioSource = null;
+    }
+
+    if (liveAudioMuteGain) {
+        try {
+            liveAudioMuteGain.disconnect();
+        } catch {}
+
+        liveAudioMuteGain = null;
+    }
+
+    if (liveAudioStream) {
+        liveAudioStream
+            .getTracks()
+            .forEach(
+                track => track.stop()
+            );
+
+        liveAudioStream = null;
+    }
+
+    if (
+        liveAudioContext &&
+        liveAudioContext.state !== "closed"
+    ) {
+        try {
+            await liveAudioContext.close();
+        } catch (error) {
+            console.debug(
+                "Live audio context cleanup:",
+                error
+            );
+        }
+    }
+
+    liveAudioContext = null;
+}
+
+
+function handleLiveSocketClose(socket) {
+    if (liveAudioSocket !== socket) {
+        return;
+    }
+
+    liveAudioSocket = null;
+    activeLiveCallId = "";
+    finishLiveCapture();
+
+    cleanupBrowserLiveAudio();
+    updateLiveRecordingUI(false);
+    stopLiveTimer();
+    stopLivePolling();
+
+    showToast(
+        "Live microphone connection to the detector was lost.",
+        "error"
+    );
+}
+
+
+function finishLiveCapture() {
+    const downloadButton =
+        el("downloadLiveCaptureButton");
+
+    if (downloadButton) {
+        downloadButton.disabled =
+            liveCaptureSamples === 0;
+    }
+
+    const durationSeconds =
+        liveCaptureSamples / 16000;
+
+    setText(
+        "liveCaptureStatus",
+        liveCaptureSamples
+            ? `Captured ${durationSeconds.toFixed(1)} seconds. Download the WAV to inspect the exact streamed signal.`
+            : "No microphone audio was captured."
+    );
+}
+
 
 async function startLiveRecording() {
     const startButton =
@@ -1667,28 +2685,211 @@ async function startLiveRecording() {
             true;
     }
 
+    let socket = null;
+
     try {
-        const {
-            response,
-            data
-        } =
-            await fetchJSON(
-                "/api/audio/start",
-                {
-                    method: "POST"
-                }
-            );
+        resetLiveCapture();
 
         if (
-            !response.ok ||
-            !data?.success
+            !window.isSecureContext ||
+            !navigator.mediaDevices?.getUserMedia
         ) {
             throw new Error(
-                data?.error ||
-                data?.message ||
-                "Unable to start live microphone."
+                "Live microphone requires HTTPS or localhost. Open this app at http://localhost:7860."
             );
         }
+
+        if (typeof AudioContext === "undefined") {
+            throw new Error(
+                "This browser does not support live audio processing."
+            );
+        }
+
+        liveAudioStream =
+            await navigator.mediaDevices.getUserMedia({
+                audio: {
+                    channelCount: 1,
+                    echoCancellation: false,
+                    noiseSuppression: false,
+                    autoGainControl: false
+                }
+            });
+
+        const callId =
+            crypto.randomUUID
+                ? crypto.randomUUID()
+                : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+        activeLiveCallId = callId;
+
+        const websocketProtocol =
+            window.location.protocol === "https:"
+                ? "wss:"
+                : "ws:";
+
+        socket = new WebSocket(
+            `${websocketProtocol}//${window.location.host}/ws/audio/${encodeURIComponent(callId)}`
+        );
+        liveAudioSocket = socket;
+        socket.binaryType = "arraybuffer";
+
+        await new Promise(
+            (resolve, reject) => {
+                let settled = false;
+
+                const connectionTimeout =
+                    window.setTimeout(
+                        () => {
+                            if (!settled) {
+                                settled = true;
+                                reject(
+                                    new Error(
+                                        "Timed out connecting to live audio detector. Check that Flask-Sock is installed and the server is running."
+                                    )
+                                );
+                            }
+                        },
+                        10000
+                    );
+
+                socket.onmessage =
+                    event => {
+                        let message;
+
+                        try {
+                            message =
+                                JSON.parse(event.data);
+                        } catch {
+                            return;
+                        }
+
+                        if (
+                            !settled &&
+                            message.success
+                        ) {
+                            settled = true;
+                            window.clearTimeout(
+                                connectionTimeout
+                            );
+                            resolve();
+                        } else if (
+                            !message.success &&
+                            message.message
+                        ) {
+                            showToast(
+                                message.message,
+                                "error"
+                            );
+                        }
+                    };
+
+                socket.onerror = () => {
+                    if (!settled) {
+                        settled = true;
+                        window.clearTimeout(
+                            connectionTimeout
+                        );
+                        reject(
+                            new Error(
+                                "Could not connect to the live detector. Confirm Flask-Sock is available and restart the Flask server."
+                            )
+                        );
+                    }
+                };
+
+                socket.onclose = () => {
+                    window.clearTimeout(
+                        connectionTimeout
+                    );
+
+                    if (!settled) {
+                        settled = true;
+                        reject(
+                            new Error(
+                                "The live detector closed the microphone connection."
+                            )
+                        );
+                    } else {
+                        handleLiveSocketClose(
+                            socket
+                        );
+                    }
+                };
+            }
+        );
+
+        liveAudioContext =
+            new AudioContext();
+
+        await liveAudioContext.resume();
+
+        liveAudioSource =
+            liveAudioContext.createMediaStreamSource(
+                liveAudioStream
+            );
+
+        liveAudioProcessor =
+            liveAudioContext.createScriptProcessor(
+                4096,
+                1,
+                1
+            );
+
+        liveAudioMuteGain =
+            liveAudioContext.createGain();
+
+        liveAudioMuteGain.gain.value = 0;
+
+        liveAudioProcessor.onaudioprocess =
+            event => {
+                if (
+                    !socket ||
+                    socket.readyState !== WebSocket.OPEN ||
+                    socket.bufferedAmount > 1024 * 1024
+                ) {
+                    return;
+                }
+
+                const samples =
+                    event.inputBuffer.getChannelData(0);
+
+                const pcm =
+                    resampleToMonoPcm16(
+                        samples,
+                        liveAudioContext.sampleRate
+                    );
+
+                if (pcm.length) {
+                    const remainingSamples =
+                        LIVE_CAPTURE_MAX_SECONDS * 16000 -
+                        liveCaptureSamples;
+
+                    if (remainingSamples > 0) {
+                        const capturedPcm =
+                            pcm.slice(
+                                0,
+                                remainingSamples
+                            );
+
+                        liveCaptureChunks.push(
+                            capturedPcm
+                        );
+                        liveCaptureSamples +=
+                            capturedPcm.length;
+                    }
+
+                    socket.send(pcm.buffer);
+                }
+            };
+
+        liveAudioSource.connect(
+            liveAudioProcessor
+        );
+        liveAudioProcessor.connect(
+            liveAudioMuteGain
+        );
+        liveAudioMuteGain.connect(
+            liveAudioContext.destination
+        );
 
         liveRecordingStartedAt =
             Date.now();
@@ -1697,12 +2898,14 @@ async function startLiveRecording() {
             true
         );
 
+        resetLiveVerdict();
+
         startLiveTimer();
 
         startLivePolling();
 
         showToast(
-            "Live AI microphone monitoring started.",
+            "Your browser microphone is streaming to the live AI detector.",
             "success"
         );
     } catch (error) {
@@ -1710,6 +2913,19 @@ async function startLiveRecording() {
             "Live monitoring start error:",
             error
         );
+
+        activeLiveCallId = "";
+        finishLiveCapture();
+
+        if (socket) {
+            liveAudioSocket = null;
+
+            try {
+                socket.close();
+            } catch {}
+        }
+
+        await cleanupBrowserLiveAudio();
 
         updateLiveRecordingUI(
             false
@@ -1734,27 +2950,32 @@ async function stopLiveRecording() {
     }
 
     try {
-        const {
-            response,
-            data
-        } =
-            await fetchJSON(
-                "/api/audio/stop",
-                {
-                    method: "POST"
-                }
-            );
+        const socket =
+            liveAudioSocket;
+
+        liveAudioSocket = null;
+        activeLiveCallId = "";
+        finishLiveCapture();
 
         if (
-            !response.ok ||
-            data?.success === false
+            socket &&
+            socket.readyState === WebSocket.OPEN
         ) {
-            throw new Error(
-                data?.error ||
-                data?.message ||
-                "Unable to stop live monitoring."
+            socket.send(
+                JSON.stringify({
+                    event: "stop"
+                })
             );
         }
+
+        if (
+            socket &&
+            socket.readyState < WebSocket.CLOSING
+        ) {
+            socket.close();
+        }
+
+        await cleanupBrowserLiveAudio();
 
         updateLiveRecordingUI(
             false
@@ -2102,6 +3323,14 @@ async function pollLatestResult() {
             data.data ||
             data;
 
+        if (
+            !activeLiveCallId ||
+            resultPayload.streaming !== true ||
+            resultPayload.call_id !== activeLiveCallId
+        ) {
+            return;
+        }
+
         const result =
             normalizeResult(
                 resultPayload
@@ -2207,8 +3436,24 @@ async function startRecordAndScan() {
         !navigator.mediaDevices ||
         !navigator.mediaDevices.getUserMedia
     ) {
+        const secureContext =
+            typeof window !== "undefined" &&
+            window.isSecureContext;
+
+        const message =
+            secureContext
+                ? "This browser does not expose microphone capture here. Try an up-to-date Chrome or Edge browser."
+                : "Microphone access requires HTTPS or localhost. Open this app at http://localhost:7860, or use an HTTPS URL.";
+
+        setText(
+            "recordScanMessage",
+            message
+        );
+
         showToast(
-            "Browser microphone access is not available.",
+            secureContext
+                ? "Browser microphone capture is unavailable."
+                : "Use HTTPS or localhost to enable the microphone.",
             "error"
         );
 
@@ -3635,6 +4880,65 @@ function updateRecordedAudioResult(
 }
 
 
+function resetLiveVerdict() {
+    setText(
+        "confidenceValue",
+        "--"
+    );
+
+    setText(
+        "liveDetectionResult",
+        "ANALYZING"
+    );
+
+    setText(
+        "liveDetectionMessage",
+        "Waiting for the first microphone audio window..."
+    );
+
+    setText(
+        "realProbability",
+        "--"
+    );
+
+    setText(
+        "fakeProbability",
+        "--"
+    );
+
+    const realBar =
+        el("realBar");
+
+    if (realBar) {
+        realBar.style.width =
+            "0%";
+    }
+
+    const fakeBar =
+        el("fakeBar");
+
+    if (fakeBar) {
+        fakeBar.style.width =
+            "0%";
+    }
+
+    const ring =
+        el("verdictRing");
+
+    if (ring) {
+        ring.style.setProperty(
+            "--verdict-progress",
+            "0%"
+        );
+
+        ring.classList.remove(
+            "real",
+            "fake"
+        );
+    }
+}
+
+
 /* =========================================================
    APPLY RESULT
    ========================================================= */
@@ -3668,6 +4972,10 @@ function applyResult(
         normalized
     );
 
+    updateScanInsights(
+        normalized
+    );
+
     if (
         options.addToHistory
     ) {
@@ -3697,6 +5005,251 @@ function applyResult(
         updateRecordedAudioResult(
             normalized
         );
+    }
+}
+
+
+function setInsightList(
+    listElement,
+    items,
+    getText
+) {
+    if (!listElement) {
+        return;
+    }
+
+    listElement.replaceChildren();
+    const values =
+        Array.isArray(items)
+            ? items
+            : [];
+
+    if (values.length === 0) {
+        const emptyItem =
+            document.createElement("li");
+        emptyItem.textContent =
+            "None detected";
+        listElement.appendChild(emptyItem);
+        return;
+    }
+
+    values.forEach(
+        item => {
+            const listItem =
+                document.createElement("li");
+            listItem.textContent =
+                getText(item);
+            listElement.appendChild(listItem);
+        }
+    );
+}
+
+
+function updateScanInsights(
+    result
+) {
+    const panel =
+        el("scanInsights");
+
+    if (!panel || !result.id) {
+        return;
+    }
+
+    panel.classList.remove("hidden");
+    setText(
+        "insightPrediction",
+        `${result.media_type}: ${result.prediction}`
+    );
+    setText(
+        "insightScores",
+        [
+            `REAL ${formatPercentage(result.real)}`,
+            `FAKE ${formatPercentage(result.fake)}`,
+            `Confidence ${formatPercentage(result.confidence)}`
+        ].join(" | ")
+    );
+
+    const explanation =
+        result.explanation &&
+        typeof result.explanation === "object"
+            ? result.explanation
+            : {};
+    setText(
+        "insightExplanation",
+        explanation.summary ||
+        "The detector output is available, but an explanation was not returned."
+    );
+    setText(
+        "insightCaveat",
+        explanation.caveat ||
+        "This prediction is an estimate and is not verified truth."
+    );
+    setText(
+        "insightVisualizationNote",
+        explanation.visualization_note ||
+        "No model-supported explanation visualization is available for this scan."
+    );
+
+    const downloadButton =
+        el("downloadScanReportButton");
+    const validScanId =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+            String(result.id)
+        );
+    if (downloadButton) {
+        downloadButton.disabled = !validScanId;
+        downloadButton.dataset.scanId =
+            validScanId
+                ? result.id
+                : "";
+    }
+
+    const scamPanel =
+        el("voiceScamPanel");
+    if (!scamPanel) {
+        return;
+    }
+    if (result.media_type !== "Audio") {
+        scamPanel.classList.add("hidden");
+        return;
+    }
+
+    scamPanel.classList.remove("hidden");
+    const scam =
+        result.scam_intelligence &&
+        typeof result.scam_intelligence === "object"
+            ? result.scam_intelligence
+            : {};
+    const riskLevel =
+        String(scam.risk_level || "UNKNOWN").toUpperCase();
+    const riskBadge =
+        el("scamRiskBadge");
+    if (riskBadge) {
+        riskBadge.textContent = riskLevel;
+        riskBadge.className =
+            `scam-risk-badge ${riskLevel.toLowerCase()}`;
+    }
+    setText(
+        "scamSummary",
+        scam.summary ||
+        "Transcription is unavailable; the voice authenticity result remains separate."
+    );
+    setText(
+        "scamTranscript",
+        scam.transcript ||
+        (scam.status === "unavailable"
+            ? "Transcription unavailable. Voice authenticity analysis was not affected."
+            : "Not available for this live audio scan.")
+    );
+    setInsightList(
+        el("scamIndicators"),
+        scam.indicators,
+        indicator => {
+            const label =
+                indicator && indicator.label
+                    ? indicator.label
+                    : "Warning indicator";
+            const excerpts =
+                indicator && Array.isArray(indicator.excerpts)
+                    ? indicator.excerpts
+                    : [];
+            return excerpts.length
+                ? `${label}: ${excerpts.join(" | ")}`
+                : label;
+        }
+    );
+    setInsightList(
+        el("scamRecommendations"),
+        scam.recommendations,
+        recommendation => String(recommendation)
+    );
+}
+
+
+async function downloadScanReport(
+    scanId,
+    button = null
+) {
+    if (!scanId) {
+        showToast("This scan does not have a valid report ID.", "error");
+        return;
+    }
+
+    const message =
+        el("reportDownloadMessage");
+    const originalText =
+        button ? button.textContent : "";
+    if (button) {
+        button.disabled = true;
+        button.textContent = "Preparing PDF...";
+    }
+    if (message) {
+        message.textContent = "";
+    }
+
+    try {
+        const response =
+            await fetch(
+                `/api/reports/${encodeURIComponent(scanId)}`,
+                {
+                    method: "GET",
+                    headers: {
+                        Accept: "application/pdf, application/json"
+                    }
+                }
+            );
+
+        if (!response.ok) {
+            let errorMessage =
+                `Report download failed (${response.status}).`;
+            try {
+                const data = await response.json();
+                errorMessage =
+                    data.message || errorMessage;
+            } catch (error) {
+                console.debug("Report error response was not JSON:", error);
+            }
+            throw new Error(errorMessage);
+        }
+
+        const contentType =
+            response.headers.get("Content-Type") || "";
+        if (!contentType.includes("application/pdf")) {
+            throw new Error("The server did not return a PDF report.");
+        }
+
+        const blob =
+            await response.blob();
+        const downloadUrl =
+            URL.createObjectURL(blob);
+        const link =
+            document.createElement("a");
+        link.href = downloadUrl;
+        link.download =
+            `CyberShield_Report_${scanId}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.setTimeout(
+            () => URL.revokeObjectURL(downloadUrl),
+            1000
+        );
+        showToast("Detection report downloaded.", "success");
+    } catch (error) {
+        console.error("Detection report download failed:", error);
+        if (message) {
+            message.textContent =
+                error.message || "The report could not be downloaded.";
+        }
+        showToast(
+            error.message || "The report could not be downloaded.",
+            "error"
+        );
+    } finally {
+        if (button) {
+            button.disabled = false;
+            button.textContent = originalText;
+        }
     }
 }
 
@@ -3760,21 +5313,11 @@ function updateVerdict(
     const ring =
         el("verdictRing");
 
-    if (ring) {
-        ring.style.setProperty(
-            "--verdict-progress",
-            `${result.confidence}%`
-        );
-
-        ring.classList.remove(
-            "real",
-            "fake"
-        );
-
-        ring.classList.add(
-            result.prediction.toLowerCase()
-        );
-    }
+    setRiskCircleState(
+        ring,
+        result.fake,
+        result.confidence
+    );
 
     const chunkText =
         result.chunk
@@ -3909,22 +5452,11 @@ function updateRiskPanel(
     const circle =
         el("riskCircle");
 
-    if (circle) {
-        circle.classList.remove(
-            "low",
-            "medium",
-            "high"
-        );
-
-        circle.classList.add(
-            result.risk_level.toLowerCase()
-        );
-
-        circle.style.setProperty(
-            "--risk-progress",
-            `${result.risk}%`
-        );
-    }
+    setRiskCircleState(
+        circle,
+        result.fake,
+        result.risk
+    );
 }
 
 
@@ -4123,7 +5655,19 @@ function createHistoryEntry(
 
         source:
             result.source ||
-            "Unknown"
+            "Unknown",
+
+        media_hash:
+            result.media_hash ||
+            "",
+
+        block_index:
+            result.block_index ??
+            null,
+
+        block_hash:
+            result.block_hash ||
+            ""
     };
 }
 
@@ -4451,7 +5995,7 @@ function renderHistory() {
             );
 
         cell.colSpan =
-            6;
+            7;
 
         cell.className =
             "history-empty";
@@ -4577,6 +6121,62 @@ function renderHistory() {
             modelCell.textContent =
                 item.model;
 
+            const blockchainCell =
+                document.createElement(
+                    "td"
+                );
+
+            if (item.block_hash) {
+                const blockLabel =
+                    document.createElement(
+                        "div"
+                    );
+
+                blockLabel.textContent =
+                    `#${item.block_index} · ${item.block_hash.slice(0, 12)}…`;
+
+                blockLabel.title =
+                    item.block_hash;
+
+                const verifyButton =
+                    document.createElement(
+                        "button"
+                    );
+
+                verifyButton.type = "button";
+                verifyButton.className = "history-btn";
+                verifyButton.textContent = "Verify file";
+                verifyButton.addEventListener(
+                    "click",
+                    () => verifyHistoryFile(item, verifyButton)
+                );
+
+                blockchainCell.append(
+                    blockLabel,
+                    verifyButton
+                );
+            } else {
+                blockchainCell.textContent =
+                    "Not recorded";
+            }
+
+            if (
+                /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+                    String(item.id)
+                )
+            ) {
+                const reportButton =
+                    document.createElement("button");
+                reportButton.type = "button";
+                reportButton.className = "history-btn";
+                reportButton.textContent = "Download PDF";
+                reportButton.addEventListener(
+                    "click",
+                    () => downloadScanReport(item.id, reportButton)
+                );
+                blockchainCell.appendChild(reportButton);
+            }
+
             row.appendChild(
                 timeCell
             );
@@ -4601,11 +6201,92 @@ function renderHistory() {
                 modelCell
             );
 
+            row.appendChild(
+                blockchainCell
+            );
+
             body.appendChild(
                 row
             );
         }
     );
+}
+
+
+async function verifyHistoryFile(
+    item,
+    button
+) {
+    const picker =
+        document.createElement("input");
+
+    picker.type = "file";
+    picker.accept = "audio/*,image/*,video/*";
+    picker.addEventListener(
+        "change",
+        async () => {
+            const file =
+                picker.files?.[0];
+
+            if (!file) {
+                return;
+            }
+
+            button.disabled = true;
+            button.textContent = "Checking...";
+
+            try {
+                const formData =
+                    new FormData();
+
+                formData.append("scan_id", item.id);
+                formData.append("file", file);
+
+                const response =
+                    await fetch(
+                        "/api/blockchain/verify",
+                        {
+                            method: "POST",
+                            body: formData
+                        }
+                    );
+
+                const data =
+                    await response.json();
+
+                if (
+                    response.ok &&
+                    data.success &&
+                    data.verification?.valid &&
+                    data.verification?.file_matches
+                ) {
+                    showToast(
+                        "Blockchain verified: original file matches this scan.",
+                        "success"
+                    );
+                } else {
+                    showToast(
+                        data.verification?.error ||
+                        data.message ||
+                        "Blockchain verification failed.",
+                        "error"
+                    );
+                }
+            } catch (error) {
+                showToast(
+                    error.message ||
+                    "Could not verify the selected file.",
+                    "error"
+                );
+            } finally {
+                button.disabled = false;
+                button.textContent = "Verify file";
+            }
+        },
+        { once: true }
+    );
+
+    picker.click();
 }
 
 
@@ -4969,7 +6650,10 @@ function exportHistory() {
         "RISK_LEVEL",
         "MODEL",
         "SOURCE",
-        "FILE"
+        "FILE",
+        "SCAN_ID",
+        "BLOCK_INDEX",
+        "BLOCK_HASH"
     ];
 
     const rows =
@@ -4995,7 +6679,10 @@ function exportHistory() {
                 item.risk_level,
                 item.model,
                 item.source,
-                item.filename
+                item.filename,
+                item.id,
+                item.block_index ?? "",
+                item.block_hash
             ]
         );
 
@@ -5219,6 +6906,17 @@ function updateAnalytics() {
    ========================================================= */
 
 function setInitialDashboardState() {
+    setRiskCircleState(
+        el("verdictRing"),
+        0,
+        0
+    );
+    setRiskCircleState(
+        el("riskCircle"),
+        0,
+        0
+    );
+
     setText(
         "liveDetectionResult",
         "WAITING"
@@ -5675,6 +7373,33 @@ async function checkSystemHealth() {
                 ? "Risk engine operational"
                 : "Risk engine unavailable"
         );
+
+        const blockchainStatus =
+            el("blockchainStatus");
+
+        if (blockchainStatus) {
+            const ledger =
+                data?.blockchain;
+
+            blockchainStatus.classList.remove(
+                "online",
+                "pending"
+            );
+
+            if (ledger?.valid) {
+                blockchainStatus.classList.add(
+                    "online"
+                );
+                blockchainStatus.textContent =
+                    `HASH-CHAIN LEDGER VALID - ${ledger.block_count} BLOCKS`;
+            } else {
+                blockchainStatus.classList.add(
+                    "pending"
+                );
+                blockchainStatus.textContent =
+                    `HASH-CHAIN LEDGER INVALID - ${ledger?.error || "STATUS UNAVAILABLE"}`;
+            }
+        }
     } catch (error) {
         console.debug(
             "System health:",
@@ -5700,6 +7425,20 @@ async function checkSystemHealth() {
             "riskStatusText",
             "System health check unavailable"
         );
+
+        const blockchainStatus =
+            el("blockchainStatus");
+
+        if (blockchainStatus) {
+            blockchainStatus.classList.remove(
+                "online"
+            );
+            blockchainStatus.classList.add(
+                "pending"
+            );
+            blockchainStatus.textContent =
+                "HASH-CHAIN LEDGER STATUS UNAVAILABLE";
+        }
     }
 }
 
@@ -5834,6 +7573,31 @@ function setupButtons() {
 
         stopButton.disabled =
             true;
+    }
+
+    const downloadLiveCaptureButton =
+        el("downloadLiveCaptureButton");
+
+    if (downloadLiveCaptureButton) {
+        downloadLiveCaptureButton.addEventListener(
+            "click",
+            downloadLiveCapture
+        );
+        downloadLiveCaptureButton.disabled = true;
+    }
+
+    const downloadScanReportButton =
+        el("downloadScanReportButton");
+
+    if (downloadScanReportButton) {
+        downloadScanReportButton.addEventListener(
+            "click",
+            () => downloadScanReport(
+                downloadScanReportButton.dataset.scanId,
+                downloadScanReportButton
+            )
+        );
+        downloadScanReportButton.disabled = true;
     }
 
     const scanButton =
@@ -6141,6 +7905,29 @@ async function initializeDashboard() {
 
     isInitialized =
         true;
+
+    const recordScanPanel =
+        document.querySelector(".record-scan-panel");
+    const analysisGrid =
+        document.querySelector(".analysis-grid");
+    const scanInsights =
+        el("scanInsights");
+
+    if (recordScanPanel && analysisGrid) {
+        analysisGrid.insertAdjacentElement(
+            "afterend",
+            recordScanPanel
+        );
+
+        if (scanInsights) {
+            recordScanPanel.insertAdjacentElement(
+                "afterend",
+                scanInsights
+            );
+        }
+    }
+
+    initializeLanguageSelector();
 
     console.log(
         "CyberShield dashboard initializing..."

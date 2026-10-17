@@ -1,5 +1,6 @@
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, send_file
 import base64
+from io import BytesIO
 import json
 import os
 import tempfile
@@ -18,6 +19,18 @@ import soundfile as sf
 from transformers import (
     AutoFeatureExtractor,
     AutoModelForAudioClassification
+)
+
+from blockchain import (
+    BlockchainLedger,
+    LedgerIntegrityError,
+    sha256_file,
+    sha256_stream,
+)
+from reporting import create_scan_report_pdf
+from scam_intelligence import (
+    explain_detection_result,
+    transcribe_and_analyze,
 )
 
 try:
@@ -115,6 +128,14 @@ PROJECT_ROOT = os.path.dirname(
     os.path.abspath(__file__)
 )
 
+BLOCKCHAIN_LEDGER_PATH = os.environ.get(
+    "BLOCKCHAIN_LEDGER_PATH",
+    os.path.join(PROJECT_ROOT, "results", "blockchain.json"),
+)
+blockchain_ledger = BlockchainLedger(
+    BLOCKCHAIN_LEDGER_PATH
+)
+
 
 # ============================================================
 # SETTINGS
@@ -145,6 +166,8 @@ VIDEO_UPLOAD_FOLDER = os.path.join(
 )
 
 SAMPLE_RATE = 16000
+LIVE_AUDIO_WINDOW_SECONDS = 3
+LIVE_AUDIO_HOP_SECONDS = 1
 
 
 # ============================================================
@@ -596,6 +619,8 @@ def build_result(
 
         result.update(voice_metrics)
 
+    result["explanation"] = explain_detection_result(result)
+
     return result
 
 
@@ -609,6 +634,19 @@ def update_latest(
 ):
 
     global latest_result
+
+    if add_history:
+        media_hash = result.get("media_hash")
+        if not media_hash:
+            raise ValueError(
+                "A media SHA-256 hash is required for the scan ledger."
+            )
+        result.update(
+            blockchain_ledger.append_scan(
+                result,
+                media_hash,
+            )
+        )
 
     with result_lock:
 
@@ -867,6 +905,8 @@ def build_media_result(
                 0
             )
         )
+
+    result["explanation"] = explain_detection_result(result)
 
     return result
 
@@ -1172,6 +1212,7 @@ def analyze_audio_file(
 
     analysis_path = file_path
     temporary_wav = None
+    scam_intelligence = None
 
     if extension != ".wav":
 
@@ -1192,6 +1233,11 @@ def analyze_audio_file(
         result = detect_audio(
             analysis_path
         )
+
+        if result is not None:
+            scam_intelligence = transcribe_and_analyze(
+                analysis_path
+            )
 
     finally:
 
@@ -1240,6 +1286,10 @@ def analyze_audio_file(
             {}
         )
     )
+
+    final_result["media_hash"] = sha256_file(file_path)
+    if scam_intelligence is not None:
+        final_result["scam_intelligence"] = scam_intelligence
 
     update_latest(
         final_result,
@@ -1331,6 +1381,8 @@ def analyze_live_file(filename):
                 {}
             )
         )
+
+        final_result["media_hash"] = sha256_file(audio_path)
 
         update_latest(
             final_result,
@@ -1442,6 +1494,80 @@ def api_latest():
     return jsonify(result)
 
 
+@app.route(
+    "/api/reports/<scan_id>",
+    methods=["GET"]
+)
+def api_download_scan_report(scan_id):
+    try:
+        normalized_scan_id = str(uuid.UUID(scan_id))
+    except (ValueError, AttributeError):
+        return jsonify({
+            "success": False,
+            "message": "A valid scan ID is required."
+        }), 400
+
+    with result_lock:
+        result = next(
+            (
+                dict(item)
+                for item in history
+                if item.get("id") == normalized_scan_id
+            ),
+            None,
+        )
+
+    if result is None:
+        return jsonify({
+            "success": False,
+            "message": "The scan was not found in the current scan history."
+        }), 404
+
+    try:
+        ledger_status = blockchain_ledger.status()
+        try:
+            ledger_status["scan_verification"] = (
+                blockchain_ledger.verify_scan(
+                    normalized_scan_id,
+                    result.get("media_hash", ""),
+                )
+            )
+        except (
+            OSError,
+            json.JSONDecodeError,
+            LedgerIntegrityError,
+            ValueError,
+        ) as error:
+            print("Scan report ledger verification unavailable:", error)
+            ledger_status["scan_verification"] = {
+                "valid": False,
+                "file_matches": False,
+                "error": "The scan certificate could not be verified.",
+            }
+
+        pdf_bytes = create_scan_report_pdf(
+            result,
+            ledger_status,
+        )
+        response = send_file(
+            BytesIO(pdf_bytes),
+            mimetype="application/pdf",
+            as_attachment=True,
+            download_name=f"CyberShield_Report_{normalized_scan_id}.pdf",
+            max_age=0,
+        )
+        response.headers["Cache-Control"] = "no-store"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        return response
+    except Exception as error:
+        print("Scan report generation error:", error)
+        traceback.print_exc()
+        return jsonify({
+            "success": False,
+            "message": "The detection report could not be generated."
+        }), 500
+
+
 # ============================================================
 # HISTORY
 # ============================================================
@@ -1465,6 +1591,81 @@ def api_history():
 
         "history": items
 
+    })
+
+
+@app.route(
+    "/api/blockchain/status",
+    methods=["GET"]
+)
+def api_blockchain_status():
+
+    status = blockchain_ledger.status()
+
+    return jsonify({
+        "success": True,
+        "ledger_type": "local_sha256_hash_chain",
+        "decentralized": False,
+        "status": status
+    })
+
+
+@app.route(
+    "/api/blockchain/verify",
+    methods=["POST"]
+)
+def api_blockchain_verify():
+
+    scan_id = request.form.get("scan_id", "").strip()
+    file = request.files.get("file")
+
+    if not scan_id or file is None:
+        return jsonify({
+            "success": False,
+            "message": "Provide scan_id and the original file."
+        }), 400
+
+    try:
+        media_hash = sha256_stream(file.stream)
+        verification = blockchain_ledger.verify_scan(
+            scan_id,
+            media_hash,
+        )
+    except json.JSONDecodeError as error:
+        return jsonify({
+            "success": False,
+            "message": f"Blockchain ledger is unreadable: {error}"
+        }), 409
+    except ValueError as error:
+        return jsonify({
+            "success": False,
+            "message": str(error)
+        }), 400
+    except (OSError, LedgerIntegrityError) as error:
+        return jsonify({
+            "success": False,
+            "message": str(error)
+        }), 500
+
+    if not verification["valid"]:
+        return jsonify({
+            "success": False,
+            "verification": verification
+        }), 409
+
+    if not verification["file_matches"]:
+        return jsonify({
+            "success": False,
+            "verification": verification
+        }), (
+            404
+            if "block_index" not in verification
+            else 422
+        )
+
+    return jsonify({
+        "success": True,
+        "verification": verification
     })
 
 
@@ -1730,6 +1931,8 @@ def analyze_stream_window(audio, call_id):
             )
         )
 
+        final_result["media_hash"] = sha256_file(temporary_path)
+
         final_result["call_id"] = call_id
         final_result["streaming"] = True
 
@@ -1755,8 +1958,12 @@ if socket is not None:
     @socket.route("/ws/audio/<call_id>")
     def audio_stream(ws, call_id):
 
-        window_samples = SAMPLE_RATE * 2
-        hop_samples = SAMPLE_RATE // 2
+        window_samples = (
+            SAMPLE_RATE * LIVE_AUDIO_WINDOW_SECONDS
+        )
+        hop_samples = (
+            SAMPLE_RATE * LIVE_AUDIO_HOP_SECONDS
+        )
         audio_buffer = np.empty(0, dtype=np.float32)
 
         ws.send(json.dumps({
@@ -1764,8 +1971,8 @@ if socket is not None:
             "message": "Audio stream connected.",
             "sample_rate": SAMPLE_RATE,
             "format": "PCM16 mono",
-            "window_seconds": 2,
-            "hop_seconds": 0.5
+            "window_seconds": LIVE_AUDIO_WINDOW_SECONDS,
+            "hop_seconds": LIVE_AUDIO_HOP_SECONDS
         }))
 
         while True:
@@ -2153,6 +2360,8 @@ def process_image_upload():
 
         )
 
+        final_result["media_hash"] = sha256_file(image_path)
+
         update_latest(
             final_result,
             add_history=True
@@ -2332,6 +2541,8 @@ def process_video_upload():
 
         )
 
+        final_result["media_hash"] = sha256_file(video_path)
+
         update_latest(
             final_result,
             add_history=True
@@ -2509,6 +2720,8 @@ def api_health():
 
         "recording": is_recording(),
 
+        "blockchain": blockchain_ledger.status(),
+
         "recorded_audio_folder":
             RECORDED_AUDIO_FOLDER,
 
@@ -2588,7 +2801,7 @@ if __name__ == "__main__":
 
     print()
     print("Live Audio:")
-    print("Server microphone + frontend control")
+    print("Browser microphone -> PCM16 WebSocket stream")
 
     print()
     print("15-second Recording:")

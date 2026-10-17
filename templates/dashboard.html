@@ -14,7 +14,7 @@
 
     <link
         rel="stylesheet"
-        href="{{ url_for('static', filename='style.css') }}"
+        href="{{ url_for('static', filename='style.css', v='scan-details-position-v2') }}"
     >
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -97,6 +97,15 @@
                 <span class="nav-icon">◉</span>
                 <span>Live Detection</span>
                 <span class="nav-live-dot"></span>
+            </a>
+
+
+            <a
+                href="#recordAndScan"
+                class="nav-item"
+            >
+                <span class="nav-icon">◉</span>
+                <span>Record &amp; Scan</span>
             </a>
 
 
@@ -250,6 +259,15 @@
 
 
             <div class="header-right">
+
+                <label class="language-control" for="languageSelect">
+                    <span id="languageLabel">Language</span>
+                    <select id="languageSelect" aria-label="Select language">
+                        <option value="en">English</option>
+                        <option value="hi">हिन्दी</option>
+                        <option value="mr">मराठी</option>
+                    </select>
+                </label>
 
                 <div class="connection-status">
 
@@ -683,6 +701,8 @@
                             type="button"
                             class="remove-file-btn"
                             id="removeSelectedFile"
+                            aria-label="Remove selected media file"
+                            title="Remove selected file"
                         >
                             ×
                         </button>
@@ -931,7 +951,6 @@
         </section>
 
 
-
         <!-- =====================================================
              LIVE DETECTION
         ====================================================== -->
@@ -968,8 +987,6 @@
                 </div>
 
             </div>
-
-
 
             <!-- =================================================
                  EXISTING 3-SECOND LIVE MONITOR
@@ -1121,6 +1138,20 @@
 
                         </button>
 
+                    </div>
+
+                    <div class="live-capture-tools">
+                        <button
+                            type="button"
+                            id="downloadLiveCaptureButton"
+                            class="live-capture-download-btn"
+                            disabled
+                        >
+                            Download exact detector input (WAV)
+                        </button>
+                        <small id="liveCaptureStatus">
+                            Optional debug capture: up to 120 seconds, stored only in this browser.
+                        </small>
                     </div>
 
 
@@ -1318,6 +1349,12 @@
             </div>
 
 
+        </section>
+
+        <section
+            id="recordAndScan"
+            class="dashboard-section"
+        >
 
             <!-- =================================================
                  NEW 1-MINUTE RECORD & SCAN
@@ -1681,6 +1718,69 @@
 
             </div>
 
+            <section
+                id="scanInsights"
+                class="scan-insights hidden"
+                aria-live="polite"
+            >
+                <div class="panel insight-panel">
+                    <div class="panel-header insight-header">
+                        <div>
+                            <span class="section-kicker">SCAN DETAILS</span>
+                            <h3>Why This Result?</h3>
+                            <p id="insightPrediction">No completed scan selected.</p>
+                        </div>
+                        <button
+                            type="button"
+                            id="downloadScanReportButton"
+                            class="history-btn report-download-button"
+                            disabled
+                        >
+                            Download Report
+                        </button>
+                    </div>
+
+                    <div class="insight-grid">
+                        <div class="insight-card">
+                            <h4>Model output</h4>
+                            <p id="insightScores">Not available</p>
+                        </div>
+                        <div class="insight-card">
+                            <h4>Explanation</h4>
+                            <p id="insightExplanation">Not available</p>
+                        </div>
+                        <div class="insight-card">
+                            <h4>Interpretation limits</h4>
+                            <p id="insightCaveat">
+                                A model prediction is not verified truth.
+                            </p>
+                        </div>
+                    </div>
+                    <p class="insight-note" id="insightVisualizationNote"></p>
+
+                    <div id="voiceScamPanel" class="voice-scam-panel hidden">
+                        <div class="voice-scam-heading">
+                            <div>
+                                <span class="section-kicker">SEPARATE FROM VOICE AUTHENTICITY</span>
+                                <h3>AI Voice Scam Intelligence</h3>
+                            </div>
+                            <span id="scamRiskBadge" class="scam-risk-badge">UNKNOWN</span>
+                        </div>
+                        <p id="scamSummary" class="insight-card"></p>
+                        <h4>Transcribed text</h4>
+                        <pre id="scamTranscript" class="scam-transcript">Not available</pre>
+                        <h4>Detected indicators</h4>
+                        <ul id="scamIndicators" class="scam-list"></ul>
+                        <h4>Recommended safety actions</h4>
+                        <ul id="scamRecommendations" class="scam-list"></ul>
+                        <p class="insight-note">
+                            Rule-based warning signs are not proof of a scam. A real voice can be used
+                            in a scam, and an AI-generated voice is not automatically a scam.
+                        </p>
+                    </div>
+                    <p id="reportDownloadMessage" class="report-download-message" role="status"></p>
+                </div>
+            </section>
 
 
             <!-- =================================================
@@ -2367,6 +2467,13 @@
                             Scan History
                         </h3>
 
+                        <small
+                            id="blockchainStatus"
+                            class="system-status pending"
+                        >
+                            HASH-CHAIN LEDGER CHECKING...
+                        </small>
+
                     </div>
 
 
@@ -2472,6 +2579,10 @@
                                     MODEL
                                 </th>
 
+                                <th>
+                                    BLOCKCHAIN
+                                </th>
+
                             </tr>
 
                         </thead>
@@ -2481,7 +2592,7 @@
 
                             <tr class="empty-history">
 
-                                <td colspan="6">
+                                <td colspan="7">
 
                                     <div class="empty-history-content">
 
@@ -2864,7 +2975,7 @@
      JAVASCRIPT
 ============================================================== -->
 
-<script src="{{ url_for('static', filename='script.js', v='ddd6829') }}"></script>
+<script src="{{ url_for('static', filename='script.js', v='scan-details-position-v2') }}"></script>
 
 
 </body>
